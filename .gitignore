@@ -1,0 +1,38 @@
+# ==============================================================================
+# EPFL CS-433 Project 1 - Git Ignore Configuration
+# Protects against committing local datasets, test runners, and runtime artifacts
+# ==============================================================================
+
+# Datasets and archives (Never commit data to GitHub per course rules)
+data/
+*.zip
+*.tar.gz
+*.csv
+
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Local diagnostic scripts and images (Local development only)
+test_step2.py
+grading_tests/
+*.png
+*.jpg
+*.jpeg
+
+# Course resources, handouts and report templates (Kept locally for student reference)
+*.pdf
+latex-example-paper/
+
+# IDE, OS, and Environment
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.ipynb_checkpoints/
+.env
+venv/
+env/
+.venv/
