@@ -27,6 +27,7 @@ grading_tests/
 latex-example-paper/
 
 # IDE, OS, and Environment
+github_workdir/
 .vscode/
 .idea/
 .DS_Store
