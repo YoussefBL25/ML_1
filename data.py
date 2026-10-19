@@ -1,69 +1,70 @@
-"""Data loading (with a .npz cache) and a mock preprocessing.
+"""Validated CSV loading with a source-aware NumPy cache."""
 
-baseline_preprocess is a mock, NOT the team's preprocessing: preprocessing and
-label conversion belong to preprocess.py (Person 1). It was written only so that
-tune_linear.py and run.py could run before preprocess.py exists, and is to be
-deleted once it does.
-"""
-
-import os
+import json
+from pathlib import Path
+from zipfile import BadZipFile
 
 import numpy as np
 
 from helpers import load_csv_data
+from preprocess import Preprocessor, binary_labels
 
-DATA_PATH = os.path.join("data", "dataset_to_release", "dataset")
-CACHE_FILE = os.path.join("data", "cache.npz")
+ROOT = Path(__file__).resolve().parent
+DATA_PATH = ROOT / "data" / "dataset_to_release" / "dataset"
+KEYS = ("x_train", "x_test", "y_train", "train_ids", "test_ids")
+FILES = ("x_train.csv", "y_train.csv", "x_test.csv")
 
 
-def load_data(data_path=DATA_PATH, cache_file=CACHE_FILE):
-    """Load the CSVs with helpers.load_csv_data, caching the arrays as .npz.
+def _validate(arrays):
+    x_train, x_test, y_train, train_ids, test_ids = arrays
+    if (x_train.ndim != 2 or x_test.ndim != 2 or
+            x_train.shape[1] == 0 or x_train.shape[1] != x_test.shape[1] or
+            len(x_train) == 0 or len(x_test) == 0):
+        raise ValueError("Training/test features must be nonempty with matching columns.")
+    binary_labels(y_train)
+    if len(y_train) != len(x_train) or len(train_ids) != len(x_train) or len(test_ids) != len(x_test):
+        raise ValueError("Feature, label, and Id row counts do not match.")
+    if np.any(np.isinf(x_train)) or np.any(np.isinf(x_test)):
+        raise ValueError("Features contain infinity; missing values must be NaN.")
+    for ids in (train_ids, test_ids):
+        if (ids.ndim != 1 or not np.all(np.isfinite(ids)) or
+                not np.all(ids == np.floor(ids)) or len(np.unique(ids)) != len(ids)):
+            raise ValueError("Each CSV must have unique finite integer Ids.")
+    return tuple(arrays)
 
-    Parsing the CSVs takes minutes; the cache brings it down to seconds.
 
-    Returns:
-        tuple: (x_train, x_test, y_train, train_ids, test_ids), y_train in {-1, 1}.
+def load_data(data_path=DATA_PATH, cache_file=None, use_cache=True):
+    """Return (x_train, x_test, y_train, train_ids, test_ids).
+
+    Paths default to the project directory, independent of the working directory.
+    Cache metadata includes source paths, byte sizes, and nanosecond mtimes.
+    Legacy caches without metadata are rebuilt; CSVs must always be present.
     """
-    if os.path.exists(cache_file):
-        d = np.load(cache_file)
-        return d["x_train"], d["x_test"], d["y_train"], d["train_ids"], d["test_ids"]
-    x_train, x_test, y_train, train_ids, test_ids = load_csv_data(data_path)
-    np.savez(
-        cache_file,
-        x_train=x_train,
-        x_test=x_test,
-        y_train=y_train,
-        train_ids=train_ids,
-        test_ids=test_ids,
-    )
-    return x_train, x_test, y_train, train_ids, test_ids
+    data_path = Path(data_path).resolve()
+    sources = [data_path / name for name in FILES]
+    missing = [str(path) for path in sources if not path.is_file()]
+    if missing:
+        raise FileNotFoundError("Dataset files are missing: " + ", ".join(missing) +
+                                ". Add the three course CSVs or pass --data-dir.")
+    signature = json.dumps([(str(p), p.stat().st_size, p.stat().st_mtime_ns)
+                            for p in sources])
+    cache_file = Path(cache_file) if cache_file else data_path / "cache.npz"
+    if use_cache and cache_file.is_file():
+        try:
+            with np.load(cache_file, allow_pickle=False) as cached:
+                if str(cached["sources"]) == signature:
+                    return _validate([cached[key] for key in KEYS])
+        except (OSError, ValueError, KeyError, EOFError, BadZipFile):
+            pass
+    arrays = _validate(load_csv_data(data_path))
+    if use_cache:
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(cache_file, sources=signature, **dict(zip(KEYS, arrays)))
+    return arrays
 
 
 def baseline_preprocess(x_train, x_test, y_train):
-    """Minimal preprocessing: median imputation, standardization, bias column.
-
-    All statistics come from x_train only. Columns that are entirely NaN or
-    constant on x_train are dropped. Special codes (7, 9, 77, ...) are not handled.
-
-    Returns:
-        tuple: (tx_train, tx_test, y) with y in {0, 1}.
-    """
-    # Drop columns with no information on the training set
-    keep = ~np.all(np.isnan(x_train), axis=0)
-    x_train, x_test = x_train[:, keep], x_test[:, keep]
-
-    # Replace NaN by the training median of the column
-    median = np.nanmedian(x_train, axis=0)
-    x_train = np.where(np.isnan(x_train), median, x_train)
-    x_test = np.where(np.isnan(x_test), median, x_test)
-
-    # Standardize with training statistics, dropping constant columns
-    mean, std = x_train.mean(axis=0), x_train.std(axis=0)
-    keep = std > 0
-    x_train = (x_train[:, keep] - mean[keep]) / std[keep]
-    x_test = (x_test[:, keep] - mean[keep]) / std[keep]
-
-    tx_train = np.c_[np.ones(len(x_train)), x_train]
-    tx_test = np.c_[np.ones(len(x_test)), x_test]
-    y = (y_train == 1).astype(float)
-    return tx_train, tx_test, y
+    """Compatibility wrapper; CV must fit a new Preprocessor per fold."""
+    processor = Preprocessor()
+    return (processor.fit_transform(x_train), processor.transform(x_test),
+            binary_labels(y_train))

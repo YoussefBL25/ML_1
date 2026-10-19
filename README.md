@@ -1,81 +1,251 @@
-# ML_1 — EPFL CS-433 Project 1 (heart disease prediction)
+# ML_1 — EPFL CS-433 Project 1
 
-Binary classification of MICHD (coronary heart disease) from the BRFSS survey,
-using only NumPy (plus matplotlib for plots).
+Binary classification of reported coronary heart disease (MICHD) from BRFSS
+survey features. Training and preprocessing use only NumPy and Python's standard
+library. The dataset is not included.
 
-## Setup
+## Current status
 
-Put the three dataset files in `data/dataset_to_release/dataset/` without
-renaming them:
+The preprocessing, validation, tuning, and submission infrastructure can be
+tested without the medical dataset. The six required methods are implemented.
+Real-data feature rules, experiments, final model selection, and the report's
+findings remain pending.
 
+`config/model.json` is explicitly a **provisional legacy baseline**: ridge with
+`lambda_=1e-6` and cutoff `0.22`. It has not been selected using the new
+validation protocol or verified against a best AIcrowd submission.
+
+## Setup and checks without the dataset
+
+Use Python 3.10+ and install the runtime dependency:
+
+```bash
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -v
+python run.py --help
+python tune_models.py --help
 ```
+
+The tests generate tiny synthetic CSVs in temporary directories. They check
+analytic updates and losses for all six methods, gradients, singular least
+squares, extreme logistic scores, preprocessing statistics and schemas,
+validation isolation, metrics, cache refresh, CSV validation, and repeatable
+tuning-to-submission execution. They do not measure medical-data performance.
+No external testing library is required for this local suite.
+
+Verification completed with Python 3.12 and NumPy 2.3.5: all 30 local synthetic
+tests passed. The official course public tests were also run from a separate
+temporary directory: 26 passed, with the GitHub URL format check and optional
+Black formatting check excluded for local verification. Those tests do not
+establish final submission performance or validate the published repository URL.
+To repeat the course checks using a separate checkout of
+[the course tests](https://github.com/epfml/ML_course/tree/main/projects/project1/grading_tests),
+install their test dependencies in a development environment and run:
+
+```bash
+python -m pytest /path/to/ML_course/projects/project1/grading_tests \
+  --github_link /absolute/path/to/ML_1 \
+  -k 'not github_link_format and not black_format'
+```
+
+Run the URL check with the final public commit URL before submitting. The LaTeX
+draft has not been compiled in this environment because LaTeX is not installed.
+
+## Dataset loading
+
+Place the three course files here without renaming them:
+
+```text
 data/dataset_to_release/dataset/x_train.csv
 data/dataset_to_release/dataset/y_train.csv
 data/dataset_to_release/dataset/x_test.csv
 ```
 
-The first load parses the CSVs (about 2.5 minutes) and caches them in
-`data/cache.npz`; later loads take a few seconds. Delete the cache if the CSVs change.
+Default paths are relative to the project directory, so scripts also work when
+launched from another working directory. `--data-dir /path/to/dataset` overrides
+the input directory. The loader checks feature dimensions, row counts, unique
+integer Ids, label values, and alignment of training feature/label Ids.
 
-## Reproducing the submission
+The first load parses CSVs and creates `cache.npz` inside that dataset directory.
+Later loads reuse it only when source paths, sizes, and modification times match.
+Legacy caches are rebuilt. Use `--no-cache` to bypass caching, including when
+files have been replaced while preserving their sizes and timestamps. Missing
+files produce an actionable error before training or submission output.
 
-```
-python run.py
-```
+## Preprocessing and feature generation
 
-This trains the final model on the full training set and writes
-`submission.csv` (ids and predictions in {-1, 1}) for upload to AIcrowd.
+`preprocess.Preprocessor` provides `fit`, `transform`, and `fit_transform`.
+Every validation training partition gets a fresh instance. The submission
+pipeline fits once on all training rows and transforms test rows with that state.
+Labels convert from `{-1, 1}` to `{0, 1}` for training.
 
-## Missing deliverables (from the project description)
+The default transformation drops all-missing numeric columns, imputes numeric
+NaNs with training medians, drops constant generated features, standardizes with
+training means/standard deviations, and adds a bias column. It replaces the
+previous mock implementation; `data.baseline_preprocess` remains a compatibility
+wrapper and must not be called on all data before cross-validation.
 
-| Required | Status |
+Options in `config/preprocessing.json` are:
+
+| Option | Meaning |
 | --- | --- |
-| `implementations.py` with the 6 methods | Done |
-| `run.py` reproducing exactly the best AIcrowd submission | Exists, but no submission has been made yet; it must be updated to the final best model |
-| `README.md` documenting data preparation, feature generation and cross-validation | Partial: the preprocessing described below is a mock until `preprocess.py` is ready |
-| Report: 2-page PDF written in LaTeX (references may go on a third page) | **Missing** |
-| Link to the public GitHub repository, submitted with the report | **Missing** (to give at submission) |
+| `missing_codes` | Per-column lists of survey codes to replace with NaN; empty by default. |
+| `categorical_columns` | Raw column indices to encode categorically; empty by default. |
+| `add_missing_indicators` | Add indicators for columns containing missing values during fit. |
+| `degree` | `1` for original numeric values; `2` also adds their imputed squares, without interactions. |
+| `standardize` | Scale all retained generated features, including indicator/encoded features. |
+| `add_bias` | Prepend a column of ones. |
+
+Indices are zero-based and exclude the CSV Id column. For example,
+`"missing_codes": {"0": [7, 9], "2": [77, 99]}` only changes columns 0 and 2.
+This illustrates the configuration format, **not verified BRFSS rules**. Confirm
+each mapping using the course feature documentation before enabling it. Codes
+such as 7 or 99 can be valid values in other columns.
+
+Categorical levels are learned from training data, with the first observed
+sorted level as reference (one fewer dummy column). Missingness gets its own
+level only if present during fit. Unseen levels, including previously unseen
+missingness, map to all-zero dummy values before scaling. Numeric all-missing
+columns remain dropped even if validation/test values exist. These conventions
+keep validation/test distributions from changing the fitted feature schema.
+
+## Models and reproducibility
+
+`models.py` exposes all six required implementations to both tuning and
+submission. Linear models output `X @ w`; logistic methods output sigmoid
+probabilities. SGD uses the configuration's seed and restores the caller's
+random-number state. All methods return the last weights and unpenalized loss.
+MSE includes the required factor `1/2`; regularizers use `lambda_ * ||w||^2`,
+including the bias. Least squares uses normal equations with a pseudoinverse
+fallback for singular systems. Logistic loss uses stable `logaddexp` evaluation.
+
+Model JSON files contain `model`, `params`, `seed`, `threshold`, `preprocessing`,
+and an optional `status` label. Unknown keys, invalid parameters, and nonfinite
+model outputs are rejected. Retain the exact selected JSON, code commit,
+Python/NumPy versions, input files, and uploaded CSV for each final experiment.
+Dependency ranges alone do not guarantee identical numerical results across
+different environments.
+
+## Validation and tuning once data is available
+
+Run all six methods, only the four linear methods, or a smaller model grid:
+
+```bash
+python tune_models.py --preprocessing config/preprocessing.json
+python tune_linear.py
+python tune_models.py --methods ridge_regression,logistic_regression
+```
+
+The default protocol uses five stratified outer folds, three inner folds, and
+seed 0. Each outer training partition independently selects the model,
+hyperparameters, preprocessing variant, and threshold using inner out-of-fold
+scores. Its validation partition is used only to compute F1 for the chosen
+configuration. Report `outer_mean_f1` and `outer_std_f1`. The same splits are used
+for every candidate, and every inner/outer fit learns preprocessing only on its
+own training rows. Each class must have enough examples for both split levels.
+
+After outer evaluation, a separate full-training CV search produces the
+deployment configuration. Its `selection_f1` and `selection_fold_std` are
+selection statistics, not unbiased test estimates. Candidate sets must be fixed
+before interpreting outer scores; repeatedly changing grids using those scores
+can overfit the evaluation. `cross_validate` provides nested cutoff selection
+for a fixed model; `nested_grid_search` evaluates the entire selection procedure.
+The compatibility `grid_search` reports selection results only.
+
+The default threshold grid is `0.05` through `0.95`, step `0.01`; ties choose the
+lowest threshold. The Python validation APIs also accept custom finite threshold
+grids, including thresholds outside `[0, 1]` for linear scores.
+
+Starter hyperparameter grids in `tune_models.py` use 200 GD/logistic iterations,
+200,000 single-sample SGD steps, six learning rates per iterative method, six
+ridge penalties, and two regularization values crossed with six learning rates
+for regularized logistic regression. These are starting points requiring data
+checks, not final tuned settings. Divergence stops the run with an error; review
+scaling and learning rates before rerunning. Nested searches can be expensive.
+
+To compare feature variants or use smaller grids, supply a list of full model
+configurations. The example contains baseline ridge, missing indicators, numeric
+squares, logistic, and regularized logistic candidates:
+
+```bash
+python tune_models.py --candidates config/candidates.example.json \
+  --folds 5 --inner-folds 3 --seed 0
+```
+
+`--candidates` overrides `--methods` and `--preprocessing`; candidate seeds are
+stored in the JSON, while `--seed` controls folds. For ablations, run restricted
+candidate lists on identical splits and record their separate outer estimates.
+
+The default outputs are `results/tuning_nested.json` (protocol, outer scores,
+selected configurations, selection results, runtime versions, and elapsed time) and
+`results/selected_model.json` (the configuration accepted by `run.py`). Override
+them with `--output` and `--model-output` to keep each experiment separately.
+
+## Generating submissions
+
+```bash
+# Provisional baseline; not yet a best-submission reproduction.
+python run.py
+
+# Model selected by an experiment.
+python run.py --config results/selected_model.json --output submission.csv
+```
+
+Training uses all training rows, then predictions are mapped back to `{-1, 1}`.
+Output contains exactly `Id,Prediction` with test Ids in their original order.
+Length mismatches, duplicate/noninteger Ids, and invalid labels are rejected
+before opening the output file. Repeated runs with identical data, configuration,
+and environment are covered by synthetic tests.
+
+After comparing actual AIcrowd submissions, place the exact best configuration
+in `config/model.json` so `python run.py` reproduces its CSV, and verify that
+comparison before final submission. No AIcrowd submission is performed by these
+scripts.
+
+## Historical results
+
+`results/tuning_linear.json` preserves the earlier mock-preprocessing results:
+GD F1 0.4097, SGD 0.4028, least squares 0.4120, ridge 0.4120. Those experiments
+preprocessed the full training set before CV and selected/evaluated the cutoff
+on the same pooled predictions. They require recomputation and are not results
+from the current validation pipeline. New tuning outputs use different filenames
+to preserve this historical record.
+
+## Report and remaining deliverables
+
+`report/main.tex` is a draft structure with explicit placeholders, not a completed
+scientific report. With a LaTeX installation, build it using:
+
+```bash
+pdflatex -interaction=nonstopmode -halt-on-error -output-directory report report/main.tex
+```
+
+Keep the completed report within two pages, without an appendix; references may
+occupy a third page. Report sources and the final `report/main.pdf` are allowed
+in Git; auxiliary build files are ignored.
+
+Remaining work requiring data or measured findings:
+
+- Inspect the actual feature schema and distributions; verify per-column survey
+  codes and categorical/ordinal/continuous treatments.
+- Run the real-data tests, model grids, feature experiments, and ablations;
+  measure results, runtime, and errors, and finalize the configuration.
+- Generate and upload predictions to AIcrowd; verify exact best-CSV reproduction.
+- Fill in report authors, methods/settings, measured results, conclusions,
+  references, and the public repository URL; compile and inspect the final PDF.
+- Submit the report with a public repository link pinned to the final commit.
 
 ## Files
 
-| File | Content |
+| File | Purpose |
 | --- | --- |
-| `implementations.py` | The 6 required methods (GD, SGD, least squares, ridge, logistic, regularized logistic), each returning `(w, loss)`. |
-| `helpers.py` | Course-provided CSV loading and submission writing. |
-| `data.py` | Cached data loading and a mock preprocessing (`baseline_preprocess`) used until `preprocess.py` exists. |
-| `metrics.py` | F1 score for labels in {0, 1}. |
-| `cross_validation.py` | Stratified k-fold split and `cross_validate` (out-of-fold scores, tuned cutoff, F1 per fold). |
-| `threshold.py` | Picks the cutoff that maximizes F1 on validation scores. |
-| `tuning.py` | Grid search over `gamma` and `lambda_` using `cross_validate`. |
-| `tune_linear.py` | Timing and tuning of GD, SGD, least squares and ridge; writes `results/tuning_linear.json`. |
-| `run.py` | Trains the final model and writes `submission.csv`. |
-
-## Method
-
-- **Labels**: converted from {-1, 1} to {0, 1} for training, back to {-1, 1} for the submission.
-- **Preprocessing (mock)**: `baseline_preprocess` in `data.py` is a mock written only so
-  that `tune_linear.py` and `run.py` could run before the team's `preprocess.py` (Person 1)
-  exists. It drops all-NaN and constant columns, replaces NaN by the training median,
-  standardizes with training mean and std, and adds a bias column; special codes
-  (7, 9, 77, 99, ...) are not handled. It will be deleted and replaced by `preprocess.py`,
-  and the results below will be recomputed with it.
-- **Evaluation**: 5-fold stratified cross-validation, same folds (seed 0) for every method.
-  Each model outputs a continuous score; the cutoff maximizing F1 on the pooled
-  out-of-fold scores is chosen (grid 0.05 to 0.95, step 0.01), and the F1 is reported as
-  mean ± std over folds at that cutoff. Because the cutoff is picked on the same
-  out-of-fold scores, the F1 is slightly optimistic.
-- **Tuning**: 6 settings per method with a hyperparameter, same folds for all.
-
-## Results so far (5-fold CV, mock preprocessing)
-
-| Method | Best setting | Cutoff | F1 (mean ± std) | One full training run |
-| --- | --- | --- | --- | --- |
-| GD (200 iters) | gamma = 0.09 | 0.22 | 0.4097 ± 0.0053 | 16.4 s |
-| SGD (200k single-sample steps) | gamma = 1e-5 | 0.19 | 0.4028 ± 0.0049 | 5.3 s |
-| Least squares | — | 0.22 | 0.4120 ± 0.0050 | 1.0 s |
-| Ridge regression | lambda_ = 1e-6 | 0.22 | 0.4120 ± 0.0050 | 0.7 s |
-
-Grids: GD gamma in {0.001, 0.003, 0.01, 0.03, 0.06, 0.09} (GD is stable for
-gamma < 2 / lambda_max(X^T X / N) ≈ 0.095), SGD gamma in {1e-6, ..., 3e-4},
-ridge lambda_ in {1e-6, ..., 1e-1}. `run.py` uses ridge regression, which ties
-least squares but stays well-conditioned (X^T X is singular because of collinear features).
+| `implementations.py` | Six required algorithms and loss/gradient helpers. |
+| `helpers.py`, `data.py` | Validated CSV I/O and source-aware cache. |
+| `preprocess.py` | Training-only fit/transform preparation and label conversion. |
+| `metrics.py`, `threshold.py` | Validated F1 and cutoff search. |
+| `cross_validation.py`, `tuning.py` | Stratified splits, fold preprocessing, nested evaluation and selection. |
+| `models.py`, `config/` | Shared model adapters, provisional config, and experiment examples. |
+| `tune_models.py`, `tune_linear.py` | Nested experiment command-line entry points. |
+| `run.py` | Configured full-data training and submission generation. |
+| `tests/` | Synthetic algorithm, isolation, I/O, and end-to-end checks. |
+| `report/main.tex` | LaTeX report draft awaiting real-data findings. |

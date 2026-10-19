@@ -1,0 +1,8 @@
+{
+  "missing_codes": {},
+  "categorical_columns": [],
+  "add_missing_indicators": false,
+  "degree": 1,
+  "standardize": true,
+  "add_bias": true
+}

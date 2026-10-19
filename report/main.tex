@@ -1,0 +1,71 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{amsmath,booktabs}
+\usepackage[hidelinks]{hyperref}
+\title{Heart Disease Prediction from BRFSS Survey Features}
+\author{Team members: \textit{to be completed}}
+\date{}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\textbf{Draft awaiting dataset experiments.}
+This project studies binary prediction of reported coronary heart disease
+using survey features and NumPy implementations of linear and logistic models.
+Complete this abstract with the final method, validation estimate, and main
+finding after running the experiments.
+\end{abstract}
+
+\section{Data and preprocessing}
+Describe the training/test sizes, class balance, and feature types after
+inspection. Document the per-column missing-value codes and categorical
+representations, including their source in the course feature documentation.
+The implemented pipeline learns imputation medians, retained features,
+categorical levels, and scaling using each training partition only.
+List the final feature transformations and justify them using ablations.
+
+\section{Methods and validation}
+The toolbox includes MSE gradient descent, single-sample SGD, normal-equation
+least squares and ridge, logistic regression, and regularized logistic
+regression. The MSE is $\|y-Xw\|^2/(2N)$; regularized objectives add
+$\lambda\|w\|^2$. Logistic models use binary labels in $\{0,1\}$.
+State the actual learning rates, regularization grids, iteration counts, and
+random seeds used in the final experiments.
+
+The planned evaluation uses five stratified outer folds and three inner folds.
+Inner predictions select the model, feature settings, hyperparameters, and
+decision cutoff; outer labels only evaluate the chosen pipeline. Report
+$F_1=2TP/(2TP+FP+FN)$ as outer-fold mean and standard deviation. The configured
+cutoff grid defaults to $0.05,0.06,\ldots,0.95$. Record any deviations from this
+protocol. Full-training selection scores are separate from outer estimates.
+
+\section{Results and ablations}
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Method or ablation & Outer $F_1$ & Runtime \\
+\midrule
+Baseline & pending & pending \\
+Selected pipeline & pending & pending \\
+Without feature change & pending & pending \\
+\bottomrule
+\end{tabular}
+\caption{Replace placeholders with measured results. Report the exact ablation
+and use identical splits. Do not treat synthetic test results as medical-data
+performance.}
+\end{table}
+Explain the most influential changes, compare relevant baselines, and discuss
+overfitting or underfitting. Historical mock-preprocessing results require
+recomputation before inclusion as evidence for this pipeline.
+
+\section{Discussion and reproducibility}
+Discuss limitations, errors, and conclusions supported by experiments.
+State the AIcrowd score and identify the exact submitted configuration and
+commit. Verify that \texttt{python run.py} recreates the best uploaded CSV.
+If it differs, explain the reason and give the reproduced submission score.
+Include the public repository URL and instructions for reproducing training.
+
+% Keep the final report within two pages, without an appendix. References may
+% occupy a third page. Add only references actually used in the completed work.
+\end{document}

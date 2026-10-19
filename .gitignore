@@ -26,6 +26,15 @@ grading_tests/
 *.pdf
 latex-example-paper/
 
+# LaTeX build products; keep report sources and allow the final report PDF.
+report/*.aux
+report/*.log
+report/*.out
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
+!report/main.pdf
+
 # IDE, OS, and Environment
 github_workdir/
 .vscode/

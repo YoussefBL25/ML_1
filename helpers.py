@@ -25,16 +25,23 @@ def load_csv_data(data_path, sub_sample=False):
         os.path.join(data_path, "y_train.csv"),
         delimiter=",",
         skip_header=1,
-        dtype=int,
-        usecols=1,
+        dtype=float,
+        usecols=(0, 1),
+        ndmin=2,
     )
     x_train = np.genfromtxt(
-        os.path.join(data_path, "x_train.csv"), delimiter=",", skip_header=1
+        os.path.join(data_path, "x_train.csv"), delimiter=",", skip_header=1, ndmin=2
     )
     x_test = np.genfromtxt(
-        os.path.join(data_path, "x_test.csv"), delimiter=",", skip_header=1
+        os.path.join(data_path, "x_test.csv"), delimiter=",", skip_header=1, ndmin=2
     )
 
+    if not np.array_equal(y_train[:, 0], x_train[:, 0]):
+        raise ValueError("y_train Ids must match x_train Ids in the same row order.")
+    for ids in (x_train[:, 0], x_test[:, 0]):
+        if not np.all(np.isfinite(ids)) or not np.all(ids == np.floor(ids)):
+            raise ValueError("CSV Ids must be finite integers.")
+    y_train = y_train[:, 1]
     train_ids = x_train[:, 0].astype(dtype=int)
     test_ids = x_test[:, 0].astype(dtype=int)
     x_train = x_train[:, 1:]
@@ -60,8 +67,13 @@ def create_csv_submission(ids, y_pred, name):
         y_pred (list,np.array): predictions on data correspondent to indices
         name (str): name of the file to be created
     """
-    # Check that y_pred only contains -1 and 1
-    if not all(i in [-1, 1] for i in y_pred):
+    ids, y_pred = np.asarray(ids), np.asarray(y_pred)
+    if ids.ndim != 1 or y_pred.ndim != 1 or len(ids) != len(y_pred) or len(ids) == 0:
+        raise ValueError("Ids and predictions must be nonempty vectors of equal length.")
+    if (not np.all(np.isfinite(ids)) or not np.all(ids == np.floor(ids)) or
+            len(np.unique(ids)) != len(ids)):
+        raise ValueError("Submission Ids must be unique finite integers.")
+    if not np.all(np.isin(y_pred, [-1, 1])):
         raise ValueError("y_pred can only contain values -1, 1")
 
     with open(name, "w", newline="") as csvfile:

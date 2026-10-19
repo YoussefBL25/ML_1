@@ -1,67 +1,90 @@
-"""Stratified k-fold cross-validation with F1 scoring.
-
-A model is described by two functions so that every method goes through the
-same folds and the same scoring:
-    train_fn(y, X, params) -> w        trains on (y, X) with the given params
-    score_fn(X, w) -> scores           continuous scores, thresholded into {0, 1}
-"""
+"""Stratified validation with training-only preprocessing and cutoff tuning."""
 
 import numpy as np
 
 from metrics import f1_score
-from threshold import best_threshold
+from preprocess import Preprocessor, binary_labels
+from threshold import THRESHOLDS, best_threshold
 
 
 def stratified_k_fold(y, k=5, seed=0):
-    """Split indices 0..N-1 into k folds with the same share of each label.
-
-    Args:
-        y (np.ndarray): Labels of shape (N,).
-        k (int): Number of folds.
-        seed (int): Random seed, so every method gets the same folds.
-
-    Returns:
-        list[np.ndarray]: k sorted arrays of validation indices.
-    """
+    """Return deterministic, disjoint folds containing both classes."""
+    y = binary_labels(y)
+    labels, counts = np.unique(y, return_counts=True)
+    if (not isinstance(k, (int, np.integer)) or isinstance(k, bool) or
+            k < 2 or len(labels) != 2 or np.min(counts) < k):
+        raise ValueError("k must be >= 2, with at least k examples of each class.")
     rng = np.random.default_rng(seed)
     folds = [[] for _ in range(k)]
-    # Shuffle each class separately and deal it evenly over the k folds
-    for label in np.unique(y):
+    for label in labels:
         idx = rng.permutation(np.flatnonzero(y == label))
         for i, part in enumerate(np.array_split(idx, k)):
             folds[i].append(part)
     return [np.sort(np.concatenate(parts)) for parts in folds]
 
 
-def cross_validate(y, X, train_fn, score_fn, params, k=5, seed=0, tune_threshold=True):
-    """Run stratified k-fold CV and return (threshold, mean_f1, std_f1).
+def validation_data(y, X):
+    """Validate raw features and binary labels without imputing or scaling."""
+    y = binary_labels(y)
+    X = np.asarray(X, dtype=float)
+    if X.ndim != 2 or len(X) != len(y) or X.shape[1] == 0:
+        raise ValueError("Features must have shape (len(y), D) with D > 0.")
+    if np.any(np.isinf(X)):
+        raise ValueError("Features contain infinity.")
+    return y, X
 
-    Every sample gets one out-of-fold score. If tune_threshold is True, the
-    cutoff maximizing F1 on all out-of-fold scores is chosen with
-    threshold.best_threshold, otherwise 0.5 is used. The F1 of each fold is
-    then computed at that cutoff.
 
-    Args:
-        y (np.ndarray): Labels in {0, 1} of shape (N,).
-        X (np.ndarray): Features of shape (N, D).
-        train_fn (callable): train_fn(y, X, params) -> w.
-        score_fn (callable): score_fn(X, w) -> scores of shape (N,).
-        params (dict): Hyperparameters passed to train_fn.
-        k (int): Number of folds.
-        seed (int): Seed of the fold split.
-        tune_threshold (bool): Whether to tune the cutoff.
+def checked_scores(score_fn, X, w):
+    scores = np.asarray(score_fn(X, w), dtype=float)
+    if scores.shape != (len(X),) or not np.all(np.isfinite(scores)):
+        raise ValueError("Model scores must be finite and one-dimensional.")
+    return scores
 
-    Returns:
-        tuple[float, float, float]: (threshold, mean F1, std F1 over folds).
-    """
-    folds = stratified_k_fold(y, k, seed)
+
+def out_of_fold_scores(y, X, train_fn, score_fn, params, k=5, seed=0,
+                       preprocessor_factory=Preprocessor):
+    """Produce selection scores, fitting preprocessing on each training fold."""
+    y, X = validation_data(y, X)
     scores = np.empty(len(y))
-    for val_idx in folds:
+    for val_idx in stratified_k_fold(y, k, seed):
         train_mask = np.ones(len(y), dtype=bool)
         train_mask[val_idx] = False
-        w = train_fn(y[train_mask], X[train_mask], params)
-        scores[val_idx] = score_fn(X[val_idx], w)
+        processor = preprocessor_factory()
+        train_X = processor.fit_transform(X[train_mask])
+        val_X = processor.transform(X[val_idx])
+        w = train_fn(y[train_mask], train_X, params)
+        scores[val_idx] = checked_scores(score_fn, val_X, w)
+    return scores
 
-    threshold = best_threshold(y, scores)[0] if tune_threshold else 0.5
-    f1s = [f1_score(y[idx], (scores[idx] >= threshold).astype(int)) for idx in folds]
-    return float(threshold), float(np.mean(f1s)), float(np.std(f1s))
+
+def cross_validate(y, X, train_fn, score_fn, params, k=5, seed=0,
+                   tune_threshold=True, preprocessor_factory=Preprocessor,
+                   inner_k=3, thresholds=THRESHOLDS):
+    """Return (deployment cutoff, mean F1, std F1) for fixed parameters.
+
+    Each outer fold's cutoff is chosen using inner out-of-fold predictions from
+    its training partition only. Outer labels are used solely for evaluation.
+    The returned deployment cutoff is separately selected from the pooled outer
+    scores; reported F1 uses the individual training-selected cutoffs, not that
+    pooled cutoff. Hyperparameter selection requires nested_grid_search.
+    Supply raw features, not a matrix preprocessed on the full dataset.
+    """
+    y, X = validation_data(y, X)
+    scores, f1s = np.empty(len(y)), []
+    for val_idx in stratified_k_fold(y, k, seed):
+        train_mask = np.ones(len(y), dtype=bool)
+        train_mask[val_idx] = False
+        train_y, train_X = y[train_mask], X[train_mask]
+        cutoff = 0.5
+        if tune_threshold:
+            inner_scores = out_of_fold_scores(
+                train_y, train_X, train_fn, score_fn, params, inner_k, seed,
+                preprocessor_factory)
+            cutoff = best_threshold(train_y, inner_scores, thresholds)[0]
+        processor = preprocessor_factory()
+        tx = processor.fit_transform(train_X)
+        w = train_fn(train_y, tx, params)
+        scores[val_idx] = checked_scores(score_fn, processor.transform(X[val_idx]), w)
+        f1s.append(f1_score(y[val_idx], (scores[val_idx] >= cutoff).astype(int)))
+    deployment_cutoff = best_threshold(y, scores, thresholds)[0] if tune_threshold else 0.5
+    return float(deployment_cutoff), float(np.mean(f1s)), float(np.std(f1s))

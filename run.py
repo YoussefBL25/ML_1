@@ -1,34 +1,46 @@
-"""Main pipeline for EPFL CS-433 Project 1: train the final model and write submission.csv.
+"""Train a configured model and generate a reproducible submission CSV."""
 
-Current model: ridge regression (lambda_ = 1e-6) on the mock preprocessing of data.py
-(stand-in until preprocess.py from Person 1 exists),
-with cutoff 0.22 on X @ w. Both values come from 5-fold stratified CV in
-tune_linear.py (F1 = 0.412 +/- 0.005).
-"""
+import argparse
+from pathlib import Path
 
-from data import load_data, baseline_preprocess
+import numpy as np
+
+from data import DATA_PATH, ROOT, load_data
 from helpers import create_csv_submission
-from implementations import ridge_regression
-
-LAMBDA = 1e-6
-THRESHOLD = 0.22
-OUTPUT_FILE = "submission.csv"
+from models import load_config, score_model, train_model
+from preprocess import Preprocessor, binary_labels
 
 
-def main():
-    """Train on the full training set, predict the test set and write the submission."""
-    x_train, x_test, y_train, _, test_ids = load_data()
-    tx_train, tx_test, y = baseline_preprocess(x_train, x_test, y_train)
+def generate_submission(config, data_dir=DATA_PATH, output=ROOT / "submission.csv",
+                        use_cache=True):
+    x_train, x_test, y_train, _, test_ids = load_data(data_dir, use_cache=use_cache)
+    processor = Preprocessor(**config["preprocessing"])
+    train_X = processor.fit_transform(x_train)
+    test_X = processor.transform(x_test)
+    w, loss = train_model(config, binary_labels(y_train), train_X)
+    scores = score_model(config, test_X, w)
+    predictions = (scores >= config["threshold"]).astype(int) * 2 - 1
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    create_csv_submission(test_ids, predictions, output)
+    print(f"Training loss: {loss:.6f}")
+    print(f"Wrote {output}: {len(predictions)} rows, "
+          f"{np.mean(predictions == 1):.2%} positive")
+    return predictions
 
-    w, loss = ridge_regression(y, tx_train, LAMBDA)
-    print(f"Training MSE loss (half): {loss:.5f}")
 
-    # Scores above the cutoff are predicted positive, mapped back to {-1, 1}
-    y_pred = (tx_test @ w >= THRESHOLD).astype(int) * 2 - 1
-    create_csv_submission(test_ids, y_pred, OUTPUT_FILE)
-    print(
-        f"Wrote {OUTPUT_FILE}: {len(y_pred)} rows, {(y_pred == 1).mean():.2%} positive"
-    )
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", type=Path, default=ROOT / "config" / "model.json")
+    parser.add_argument("--data-dir", type=Path, default=DATA_PATH)
+    parser.add_argument("--output", type=Path, default=ROOT / "submission.csv")
+    parser.add_argument("--no-cache", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        config = load_config(args.config)
+        generate_submission(config, args.data_dir, args.output, not args.no_cache)
+    except (OSError, ValueError, TypeError, KeyError, np.linalg.LinAlgError) as exc:
+        parser.exit(1, f"Error: {exc}\n")
 
 
 if __name__ == "__main__":
