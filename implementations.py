@@ -123,36 +123,6 @@ def compute_logistic_gradient(y, tx, w):
     return (tx.T @ (pred - y)) / len(y)
 
 
-def batch_iter(y, tx, batch_size=1, num_batches=1, shuffle=True):
-    """Generate mini-batches for stochastic gradient descent.
-
-    Args:
-        y (np.ndarray): Target vector of shape (N,).
-        tx (np.ndarray): Feature matrix of shape (N, D).
-        batch_size (int): Number of samples per batch. Default: 1.
-        num_batches (int): Number of batches to yield. Default: 1.
-        shuffle (bool): Whether to randomly permute indices. Default: True.
-
-    Yields:
-        tuple[np.ndarray, np.ndarray]: Mini-batch pair (y_batch, tx_batch).
-    """
-    data_size = len(y)
-    if shuffle:
-        shuffle_indices = np.random.permutation(np.arange(data_size))
-        shuffled_y = y[shuffle_indices]
-        shuffled_tx = tx[shuffle_indices]
-    else:
-        shuffled_y = y
-        shuffled_tx = tx
-
-    for batch_num in range(num_batches):
-        start_index = batch_num * batch_size
-        end_index = min((batch_num + 1) * batch_size, data_size)
-        if start_index >= data_size:
-            break
-        yield shuffled_y[start_index:end_index], shuffled_tx[start_index:end_index]
-
-
 def mean_squared_error_gd(y, tx, initial_w, max_iters, gamma):
     """Linear regression using Gradient Descent (GD).
 
@@ -206,10 +176,11 @@ def mean_squared_error_sgd(y, tx, initial_w, max_iters, gamma):
     w = np.asarray(initial_w, dtype=np.float64).ravel().copy()
 
     for _ in range(max_iters):
-        # Sample exactly 1 random data point per iteration (mini-batch size = 1)
-        for y_batch, tx_batch in batch_iter(y, tx, batch_size=1, num_batches=1):
-            grad = compute_mse_gradient(y_batch, tx_batch, w)
-            w = w - gamma * grad
+        # Sample exactly 1 random data point per iteration (mini-batch size = 1).
+        # Indexing one row avoids shuffling and copying the whole dataset each step.
+        i = np.random.randint(len(y))
+        grad = compute_mse_gradient(y[i : i + 1], tx[i : i + 1], w)
+        w = w - gamma * grad
 
     loss = compute_mse_loss(y, tx, w)
     return w, loss
