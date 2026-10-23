@@ -27,6 +27,14 @@ class PreprocessorTests(unittest.TestCase):
         result = processor.fit_transform(X)
         np.testing.assert_allclose(result[0], [1., 2., 7.])
 
+    def test_zero_codes_and_dropped_columns(self):
+        X = np.array([[88., 5., np.nan], [3., 6., 1.], [99., 7., np.nan]])
+        processor = Preprocessor(missing_codes={"0": [99]}, zero_codes={"0": [88]},
+                                 drop_columns=[2], add_missing_indicators=True,
+                                 standardize=False)
+        result = processor.fit_transform(X)
+        np.testing.assert_allclose(result, [[1, 0, 5, 0], [1, 3, 6, 0], [1, 1.5, 7, 1]])
+
     def test_category_reference_missing_and_unseen_levels(self):
         processor = Preprocessor(categorical_columns=[0], standardize=False)
         result = processor.fit_transform(np.array([[1.], [2.], [np.nan], [1.]]))

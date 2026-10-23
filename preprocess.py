@@ -32,27 +32,27 @@ class Preprocessor:
 
     def __init__(self, missing_codes=None, categorical_columns=(),
                  add_missing_indicators=False, degree=1, standardize=True,
-                 add_bias=True):
+                 add_bias=True, zero_codes=None, drop_columns=()):
         if isinstance(degree, bool) or not isinstance(degree, int) or degree not in (1, 2):
             raise ValueError("degree must be 1 or 2.")
         for name, value in (("standardize", standardize), ("add_bias", add_bias),
                             ("add_missing_indicators", add_missing_indicators)):
             if not isinstance(value, bool):
                 raise ValueError(f"{name} must be a boolean.")
-        if missing_codes is not None and not isinstance(missing_codes, dict):
-            raise ValueError("missing_codes must map column indices to code lists.")
-        if not isinstance(categorical_columns, (list, tuple)):
-            raise ValueError("categorical_columns must be a list of column indices.")
-        self.missing_codes = {}
-        for column, codes in (missing_codes or {}).items():
-            index = self._column(column)
-            values = np.asarray(codes, dtype=float)
-            if values.ndim != 1 or not np.all(np.isfinite(values)):
-                raise ValueError("Missing codes must be lists of finite numbers.")
-            self.missing_codes[index] = values
+        self.missing_codes = self._codes(missing_codes, "missing_codes")
+        self.zero_codes = self._codes(zero_codes, "zero_codes")
+        for name, columns in (("categorical_columns", categorical_columns),
+                              ("drop_columns", drop_columns)):
+            if not isinstance(columns, (list, tuple)):
+                raise ValueError(f"{name} must be a list of column indices.")
         self.categorical_columns = tuple(self._column(c) for c in categorical_columns)
-        if len(set(self.categorical_columns)) != len(self.categorical_columns):
-            raise ValueError("categorical_columns contains duplicates.")
+        self.drop_columns = tuple(self._column(c) for c in drop_columns)
+        for name, columns in (("categorical_columns", self.categorical_columns),
+                              ("drop_columns", self.drop_columns)):
+            if len(set(columns)) != len(columns):
+                raise ValueError(f"{name} contains duplicates.")
+        if set(self.categorical_columns) & set(self.drop_columns):
+            raise ValueError("A column cannot be both categorical and dropped.")
         self.add_missing_indicators = add_missing_indicators
         self.degree = degree
         self.standardize = standardize
@@ -70,16 +70,29 @@ class Preprocessor:
             raise ValueError("Column indices must be nonnegative integers.")
         return index
 
+    @classmethod
+    def _codes(cls, mapping, name):
+        if mapping is not None and not isinstance(mapping, dict):
+            raise ValueError(f"{name} must map column indices to code lists.")
+        result = {}
+        for column, codes in (mapping or {}).items():
+            values = np.asarray(codes, dtype=float)
+            if values.ndim != 1 or not np.all(np.isfinite(values)):
+                raise ValueError(f"{name} must be lists of finite numbers.")
+            result[cls._column(column)] = values
+        return result
+
     def _clean(self, X):
         X = np.array(X, dtype=float, copy=True)
         if X.ndim != 2 or X.shape[1] == 0:
             raise ValueError("Features must be a two-dimensional array with columns.")
         if np.any(np.isinf(X)):
             raise ValueError("Features contain infinity; use NaN for missing values.")
-        for column, codes in self.missing_codes.items():
-            if column >= X.shape[1]:
-                raise ValueError(f"Missing-code column {column} is out of range.")
-            X[np.isin(X[:, column], codes), column] = np.nan
+        for codes_by_column, value in ((self.missing_codes, np.nan), (self.zero_codes, 0.0)):
+            for column, codes in codes_by_column.items():
+                if column >= X.shape[1]:
+                    raise ValueError(f"Code column {column} is out of range.")
+                X[np.isin(X[:, column], codes), column] = value
         return X
 
     def _encode(self, X):
@@ -106,17 +119,19 @@ class Preprocessor:
         if len(X) == 0:
             raise ValueError("Cannot fit preprocessing on an empty training set.")
         self.n_features_in_ = X.shape[1]
-        if any(c >= X.shape[1] for c in self.categorical_columns):
-            raise ValueError("A categorical column is out of range.")
-        categorical = set(self.categorical_columns)
+        if any(c >= X.shape[1] for c in self.categorical_columns + self.drop_columns):
+            raise ValueError("A categorical or dropped column is out of range.")
+        excluded = set(self.categorical_columns) | set(self.drop_columns)
         self.numeric_columns_ = [c for c in range(X.shape[1])
-                                 if c not in categorical and not np.all(np.isnan(X[:, c]))]
+                                 if c not in excluded and not np.all(np.isnan(X[:, c]))]
         self.medians_ = np.nanmedian(X[:, self.numeric_columns_], axis=0)
         self.categories_ = [
             (c, np.unique(X[~np.isnan(X[:, c]), c]), bool(np.any(np.isnan(X[:, c]))))
             for c in self.categorical_columns
         ]
-        self.indicator_columns_ = np.flatnonzero(np.any(np.isnan(X), axis=0))
+        self.indicator_columns_ = np.array(
+            [c for c in np.flatnonzero(np.any(np.isnan(X), axis=0))
+             if c not in self.drop_columns], dtype=int)
         encoded = self._encode(X)
         self.means_ = encoded.mean(axis=0)
         self.scales_ = encoded.std(axis=0)

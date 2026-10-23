@@ -33,7 +33,10 @@ report/*.out
 report/*.fls
 report/*.fdb_latexmk
 report/*.synctex.gz
+report/*.bbl
+report/*.blg
 !report/main.pdf
+!report/figures/*.pdf
 
 # IDE, OS, and Environment
 github_workdir/

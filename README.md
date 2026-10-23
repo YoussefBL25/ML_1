@@ -90,6 +90,8 @@ Options in `config/preprocessing.json` are:
 | Option | Meaning |
 | --- | --- |
 | `missing_codes` | Per-column lists of survey codes to replace with NaN; empty by default. |
+| `zero_codes` | Per-column lists of survey codes meaning "none"/"never", replaced with 0. |
+| `drop_columns` | Raw column indices removed before any other step. |
 | `categorical_columns` | Raw column indices to encode categorically; empty by default. |
 | `add_missing_indicators` | Add indicators for columns containing missing values during fit. |
 | `degree` | `1` for original numeric values; `2` also adds their imputed squares, without interactions. |
@@ -108,6 +110,22 @@ level only if present during fit. Unseen levels, including previously unseen
 missingness, map to all-zero dummy values before scaling. Numeric all-missing
 columns remain dropped even if validation/test values exist. These conventions
 keep validation/test distributions from changing the fitted feature schema.
+
+### BRFSS preprocessing
+
+`config/preprocessing_brfss.json` applies the BRFSS 2015 codebook
+(https://www.cdc.gov/brfss/annual_data/2015/pdf/codebook15_llcp.pdf):
+"don't know"/"refused" codes become missing, "none"/"never" codes become 0,
+and identifiers, dates, survey weights, raw duplicates of calculated variables
+and high-cardinality nominal codes are dropped (64 columns). Seven nominal
+variables are one-hot encoded. Regenerate it with:
+
+```bash
+python make_preprocessing_config.py
+```
+
+The rules and per-column exceptions are listed in that script; only training
+feature maxima are read, never labels.
 
 ## Models and reproducibility
 
@@ -156,11 +174,12 @@ The default threshold grid is `0.05` through `0.95`, step `0.01`; ties choose th
 lowest threshold. The Python validation APIs also accept custom finite threshold
 grids, including thresholds outside `[0, 1]` for linear scores.
 
-Starter hyperparameter grids in `tune_models.py` use 200 GD/logistic iterations,
-200,000 single-sample SGD steps, six learning rates per iterative method, six
-ridge penalties, and two regularization values crossed with six learning rates
-for regularized logistic regression. These are starting points requiring data
-checks, not final tuned settings. Divergence stops the run with an error; review
+Hyperparameter grids are defined in `tune_models.make_candidates`. Linear
+methods use starter grids (200 GD iterations, 200,000 single-sample SGD steps,
+six learning rates per iterative method, six ridge penalties). The logistic
+grid is log-spaced: gamma in {0.01, 0.03, 0.1, 0.3, 1}, lambda_ in
+{1e-6, ..., 1e-1} for regularized logistic regression, and 300 iterations
+(see "Logistic experiments" below). Divergence stops the run with an error; review
 scaling and learning rates before rerunning. Nested searches can be expensive.
 
 To compare feature variants or use smaller grids, supply a list of full model
@@ -177,9 +196,35 @@ stored in the JSON, while `--seed` controls folds. For ablations, run restricted
 candidate lists on identical splits and record their separate outer estimates.
 
 The default outputs are `results/tuning_nested.json` (protocol, outer scores,
-selected configurations, selection results, runtime versions, and elapsed time) and
+outer precision/recall/accuracy, the tuning grid with the inner-CV F1 of every
+combination and how many outer folds selected it, runtime versions, and elapsed time) and
 `results/selected_model.json` (the configuration accepted by `run.py`). Override
 them with `--output` and `--model-output` to keep each experiment separately.
+
+### Logistic experiments (report Tables I-II, Fig. 1)
+
+Each method is tuned separately with the same folds, once with the BRFSS
+preprocessing and once with the generic default preprocessing (ablation):
+
+```bash
+for m in logistic_regression reg_logistic_regression; do
+  python tune_models.py --methods $m --preprocessing config/preprocessing_brfss.json \
+    --output results/tuning_$m.json --model-output results/selected_$m.json
+  python tune_models.py --methods $m --preprocessing config/preprocessing.json \
+    --output results/tuning_${m}_default.json --model-output /tmp/selected_${m}_default.json
+done
+python imbalance.py   # results/imbalance.json
+python plots.py       # report/figures/tuning.pdf
+```
+
+The logistic grid is log-spaced over each hyperparameter: gamma in half
+decades from too slow to converge in 300 iterations up to beyond the step size
+bound 8 / lambda_max(X^T X / N) ~ 0.57, and lambda_ in decades from negligible
+(1e-6) to strong (1e-1). `imbalance.py` reuses the tuned
+regularized config and compares positive-class loss weights 1, sqrt(r) and r
+(r = negatives / positives) on the same folds; `plots.py` plots
+the cross-validated grid scores. The regularized logistic grid (30
+combinations) takes about one hour on 16 cores.
 
 ## Generating submissions
 
@@ -242,10 +287,14 @@ Remaining work requiring data or measured findings:
 | `implementations.py` | Six required algorithms and loss/gradient helpers. |
 | `helpers.py`, `data.py` | Validated CSV I/O and source-aware cache. |
 | `preprocess.py` | Training-only fit/transform preparation and label conversion. |
-| `metrics.py`, `threshold.py` | Validated F1 and cutoff search. |
+| `metrics.py`, `threshold.py` | F1, precision, recall, accuracy; F1-optimal cutoff search. |
 | `cross_validation.py`, `tuning.py` | Stratified splits, fold preprocessing, nested evaluation and selection. |
 | `models.py`, `config/` | Shared model adapters, provisional config, and experiment examples. |
 | `tune_models.py`, `tune_linear.py` | Nested experiment command-line entry points. |
+| `make_preprocessing_config.py` | BRFSS codebook rules -> `config/preprocessing_brfss.json`. |
+| `imbalance.py` | Class-weighted logistic regression ablation. |
+| `plots.py` | Report figures from `results/` (no training). |
 | `run.py` | Configured full-data training and submission generation. |
 | `tests/` | Synthetic algorithm, isolation, I/O, and end-to-end checks. |
-| `report/main.tex` | LaTeX report draft awaiting real-data findings. |
+| `report/main.tex` | LaTeX report (IEEE template of the course); figures in `report/figures/`. |
+| `results/` | JSON outputs of the experiments above. |

@@ -6,7 +6,7 @@ from unittest.mock import patch
 import numpy as np
 
 from cross_validation import cross_validate, out_of_fold_scores, stratified_k_fold
-from metrics import f1_score
+from metrics import accuracy_score, f1_score, precision_score, recall_score
 from preprocess import Preprocessor
 from threshold import best_threshold
 from tuning import nested_grid_search, select_candidate
@@ -105,6 +105,18 @@ class ValidationTests(unittest.TestCase):
             f1_score([0, 1], [1])
         with self.assertRaises(ValueError):
             f1_score([0, 2], [1, 1])
+
+    def test_metrics_from_confusion_counts(self):
+        # TP = 2, FP = 1, FN = 2, TN = 2
+        y_true, y_pred = [1, 1, 1, 1, 0, 0, 0], [1, 1, 0, 0, 1, 0, 0]
+        self.assertAlmostEqual(precision_score(y_true, y_pred), 2 / 3)
+        self.assertAlmostEqual(recall_score(y_true, y_pred), 2 / 4)
+        self.assertAlmostEqual(accuracy_score(y_true, y_pred), 4 / 7)
+        self.assertAlmostEqual(f1_score(y_true, y_pred), 4 / 7)
+        for metric in (precision_score, recall_score):
+            self.assertEqual(metric([0, 0], [0, 0]), 0.)
+            with self.assertRaises(ValueError):
+                metric([0, 2], [1, 1])
 
     def test_bad_model_scores_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "scores"):

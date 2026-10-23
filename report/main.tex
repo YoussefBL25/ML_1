@@ -1,71 +1,238 @@
-\documentclass[10pt,twocolumn]{article}
-\usepackage[margin=0.7in]{geometry}
-\usepackage{amsmath,booktabs}
-\usepackage[hidelinks]{hyperref}
-\title{Heart Disease Prediction from BRFSS Survey Features}
-\author{Team members: \textit{to be completed}}
-\date{}
+\documentclass[10pt,conference,compsocconf]{IEEEtran}
+
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+
+% Shared team report. Each section starts with an OWNER banner; edit only your
+% sections and replace every \pending{...} with measured values. Limit: 2 pages
+% (references may use a third page), no appendix.
+\newcommand{\pending}[1]{\textbf{[#1]}}
+
 \begin{document}
+\title{Predicting Coronary Heart Disease from BRFSS Survey Data\\with Linear and Logistic Models}
+
+\author{
+  Hassen Ben Chaaben, Meriem Laataoui, Youssef Ben Lassoued\\
+  \textit{Machine Learning (CS-433), EPFL, Switzerland}
+}
+
 \maketitle
 
+% ============================================================================
+% OWNER: Person 3 (abstract, introduction)
+% ============================================================================
 \begin{abstract}
-\textbf{Draft awaiting dataset experiments.}
-This project studies binary prediction of reported coronary heart disease
-using survey features and NumPy implementations of linear and logistic models.
-Complete this abstract with the final method, validation estimate, and main
-finding after running the experiments.
+\pending{Abstract: task, data, methods, nested-CV F1 of the final model, main
+finding (codebook preprocessing matters most; class weighting and
+regularization do not help an underfitting linear model).}
 \end{abstract}
 
-\section{Data and preprocessing}
-Describe the training/test sizes, class balance, and feature types after
-inspection. Document the per-column missing-value codes and categorical
-representations, including their source in the course feature documentation.
-The implemented pipeline learns imputation medians, retained features,
-categorical levels, and scaling using each training partition only.
-List the final feature transformations and justify them using ablations.
+\section{Introduction}
+\pending{Task: predict self-reported coronary heart disease (MICHD) from the
+2015 BRFSS telephone survey; binary classification evaluated with F1; only
+NumPy allowed. Contributions and paper outline.}
 
-\section{Methods and validation}
-The toolbox includes MSE gradient descent, single-sample SGD, normal-equation
-least squares and ridge, logistic regression, and regularized logistic
-regression. The MSE is $\|y-Xw\|^2/(2N)$; regularized objectives add
-$\lambda\|w\|^2$. Logistic models use binary labels in $\{0,1\}$.
-State the actual learning rates, regularization grids, iteration counts, and
-random seeds used in the final experiments.
+% ============================================================================
+% OWNER: Person 1 (data and preprocessing). Draft from the shared EDA; review.
+% ============================================================================
+\section{Data and preprocessing}\label{sec:data}
+The training set contains $328{,}135$ respondents and $321$ features (test:
+$109{,}379$); only $8.8\%$ are positive. Overall $44.8\%$ of the values are
+missing, and $147$ features are missing for more than half of the
+respondents, mostly questions from optional state modules.
 
-The planned evaluation uses five stratified outer folds and three inner folds.
-Inner predictions select the model, feature settings, hyperparameters, and
-decision cutoff; outer labels only evaluate the chosen pipeline. Report
-$F_1=2TP/(2TP+FP+FN)$ as outer-fold mean and standard deviation. The configured
-cutoff grid defaults to $0.05,0.06,\ldots,0.95$. Record any deviations from this
-protocol. Full-training selection scores are separate from outer estimates.
+The features are survey answers with special codes. Following the BRFSS 2015
+codebook~\cite{brfss15}, ``don't know''/``refused'' codes (7/9, 77/99,
+777/999 and column-specific variants) are treated as missing, and ``none''
+codes (88, 888, 555) are set to 0; e.g.\ for PHYSHLTH (days of poor physical
+health), $62\%$ of answers are 88 = ``no days''. We remove $64$ columns:
+identifiers, interview dates, survey weights, raw answers that the codebook
+also provides as cleaned calculated variables (e.g.\ WEIGHT2 vs.\ WTKG3), and
+three nominal codes with many levels (e.g.\ type of physical activity). Seven nominal variables (state, marital
+status, employment, race, home ownership, blood pressure and diabetes status)
+are one-hot encoded. Remaining missing values are imputed with the training
+median, all features are standardized and a bias column is added. All
+statistics (medians, means, standard deviations, category levels) are
+learned on training rows only (Section~\ref{sec:protocol}).
+\pending{Person 1: EDA figure or further details, own improvement.}
 
-\section{Results and ablations}
-\begin{table}[h]
-\centering
-\begin{tabular}{lcc}
+% ============================================================================
+% OWNER: Person 3 (linear methods)
+% ============================================================================
+\section{Methods}
+\subsection{Linear models}
+\pending{MSE gradient descent, SGD (batch size 1), least squares, ridge:
+losses, grids, iterations, seed; continuous scores thresholded like
+probabilities.}
+
+% ============================================================================
+% OWNER: Person 2 (logistic models, protocol, imbalance)
+% ============================================================================
+\subsection{Logistic models}\label{sec:methods}
+Labels are mapped from $\{-1,1\}$ to $y\in\{0,1\}$. Logistic regression
+minimizes the mean negative log-likelihood
+$L(w)=\frac1N\sum_i \log(1+e^{x_i^\top w})-y_i x_i^\top w$, evaluated with
+\texttt{logaddexp} for numerical stability; the regularized variant adds
+$\lambda\|w\|^2$ (bias included). Both use full-batch gradient descent from
+$w=0$.
+
+\textit{Hyperparameter tuning} proceeds in three steps. (i)~\emph{Ranges
+from theory.} The logistic Hessian is bounded by $X^\top X/(4N)$, so gradient
+descent is guaranteed to converge for $\gamma<8/\lambda_{\max}(X^\top X/N)$;
+power iteration gives $\lambda_{\max}\approx14.0$, i.e.\ $\gamma<0.57$, and we
+take $\gamma\in\{0.1,0.25,0.5\}$. At $\gamma=0.5$ the training loss changes by
+$0.06\%$ between 300 and 600 iterations, so we fix 300 iterations. Training
+and validation losses are nearly equal ($0.219$ vs.\ $0.221$): the model
+underfits, so $\lambda$ only needs one value per decade, from no visible
+effect to a clear penalty, $\lambda\in\{10^{-4},10^{-3},10^{-2}\}$.
+(ii)~\emph{Selection.} All $3+9$ combinations are scored by inner CV in every
+outer fold (Section~\ref{sec:protocol}), and the combination and threshold
+with the highest inner-CV F1 are kept. Applied to the full training set
+(Table~\ref{tab:grid}), this rule gives the final models: $\gamma=0.5$ for
+logistic regression and $\gamma=0.5$, $\lambda=10^{-3}$ for the regularized
+variant, both with threshold $0.20$. $\gamma=0.1$ has not converged
+($-0.004$), $\lambda=10^{-2}$ over-regularizes ($-0.004$), and the remaining
+combinations lie within $0.0007$ of each other, well below the inner-fold
+standard deviation ($\approx0.003$): they are statistically tied, and the
+outer folds select only among them. (iii)~\emph{Resolution check.} A wider
+sweep on a development split inside the first outer training fold
+(Fig.~\ref{fig:sweep}) shows that F1 is flat for $\gamma\in[0.5,1]$ and
+$\lambda\le10^{-3}$, and drops outside, so a finer grid cannot gain more than
+$0.0001$.
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccc}
 \toprule
-Method or ablation & Outer $F_1$ & Runtime \\
+& \multicolumn{1}{c}{Logistic} & \multicolumn{3}{c}{Regularized logistic} \\
+\cmidrule(lr){2-2}\cmidrule(lr){3-5}
+$\gamma$ & $\lambda=0$ & $10^{-4}$ & $10^{-3}$ & $10^{-2}$ \\
 \midrule
-Baseline & pending & pending \\
-Selected pipeline & pending & pending \\
-Without feature change & pending & pending \\
+0.1  & .4277 & .4276 & .4269 & .4255 \\
+0.25 & .4314\,(1) & \textbf{.4316} & .4310 & .4270 \\
+0.5  & \textbf{.4315}\,(4) & .4313\,(3) & \textbf{.4317}\,(2) & .4271 \\
 \bottomrule
 \end{tabular}
-\caption{Replace placeholders with measured results. Report the exact ablation
-and use identical splits. Do not treat synthetic test results as medical-data
-performance.}
+\caption{Tuning grid: inner-CV F1 (3 folds, full training set) of each
+combination; in parentheses, the number of the 5 outer folds selecting it.
+Bold: best per model. Inner-fold std $\approx0.003$.}
+\label{tab:grid}
 \end{table}
-Explain the most influential changes, compare relevant baselines, and discuss
-overfitting or underfitting. Historical mock-preprocessing results require
-recomputation before inclusion as evidence for this pipeline.
 
-\section{Discussion and reproducibility}
-Discuss limitations, errors, and conclusions supported by experiments.
-State the AIcrowd score and identify the exact submitted configuration and
-commit. Verify that \texttt{python run.py} recreates the best uploaded CSV.
-If it differs, explain the reason and give the reproduced submission score.
-Include the public repository URL and instructions for reproducing training.
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/sweep.pdf}
+\caption{Development-split F1 of (regularized) logistic regression after 300
+iterations. Filled points are the values in the tuning grid; hollow points
+are additional sweep values. Left: F1 saturates at $\gamma\approx0.5$ and
+gradient descent becomes unstable at $\gamma=2$. Right: penalties up to
+$10^{-3}$ have no effect, stronger ones reduce F1 (underfitting regime).}
+\label{fig:sweep}
+\end{figure}
 
-% Keep the final report within two pages, without an appendix. References may
-% occupy a third page. Add only references actually used in the completed work.
+\subsection{Evaluation protocol}\label{sec:protocol}
+All six methods use the same nested stratified cross-validation (seed 0):
+5 outer folds estimate performance; inside each outer training part, 3 inner
+folds select the hyperparameters and the decision threshold
+($0.05,0.06,\dots,0.95$) maximizing F1 on out-of-fold predictions. Outer
+folds are used only for scoring, and every preprocessing statistic is
+learned on training rows only. We report the mean $\pm$ standard deviation
+of F1 over outer folds, and treat differences smaller than one standard
+deviation as ties.
+
+\subsection{Class imbalance}
+Threshold tuning already compensates part of the imbalance; as a
+modification of logistic regression we additionally weight the loss of
+positive samples by $\omega\in\{1,\sqrt r, r\}$, with $r=n_-/n_+\approx10.3$
+computed on each training part and weights normalized to mean one.
+$\omega=1$ recovers regularized logistic regression exactly.
+
+% ============================================================================
+% OWNER: Person 2 (results). Person 3: fill the four linear rows of tab:methods.
+% ============================================================================
+\section{Results}
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+Method & F1 & Prec. & Rec. & Acc. & Thr. \\
+\midrule
+GD (MSE) & \pending{} & & & & \\
+SGD (MSE) & \pending{} & & & & \\
+Least squares & \pending{} & & & & \\
+Ridge & \pending{} & & & & \\
+Logistic & 0.431 $\pm$ 0.005 & 0.359 & 0.541 & 0.874 & 0.20 \\
+Reg.\ logistic & 0.431 $\pm$ 0.005 & 0.361 & 0.538 & 0.875 & 0.21 \\
+\bottomrule
+\end{tabular}
+\caption{Outer-fold nested CV results (mean over 5 folds; F1 $\pm$ std),
+BRFSS preprocessing. Thr.\ = mean selected threshold.}
+\label{tab:methods}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{lcc}
+\toprule
+Configuration & F1 & Thr. \\
+\midrule
+\multicolumn{3}{l}{\textit{Preprocessing (logistic, nested CV)}} \\
+Generic (median imputation, scaling) & 0.416 $\pm$ 0.005 & 0.20 \\
+BRFSS codebook rules & 0.431 $\pm$ 0.005 & 0.20 \\
+\multicolumn{3}{l}{\textit{Class weighting (reg.\ logistic)}} \\
+$\omega=1$ (unweighted) & 0.431 $\pm$ 0.005 & 0.22 \\
+$\omega=\sqrt r\approx3.2$ & 0.431 $\pm$ 0.005 & 0.48 \\
+$\omega=r\approx10.3$ & 0.430 $\pm$ 0.005 & 0.75 \\
+\bottomrule
+\end{tabular}
+\caption{Ablation on identical folds (seed 0). Weighting rows use fixed
+$\gamma=0.5$, $\lambda=10^{-4}$, with the threshold tuned on inner folds.}
+\label{tab:ablation}
+\end{table}
+
+Logistic and regularized logistic regression tie ($0.431\pm0.005$), as
+expected from the flat tuning grid (Table~\ref{tab:grid}): the selected
+penalty is always small ($\lambda\le10^{-3}$) and $\gamma=0.5$ is selected in
+9 of 10 outer folds. Accuracy is not informative here:
+predicting ``no disease'' for everyone already reaches $0.912$, above every
+model in Table~\ref{tab:methods}. At the F1-optimal threshold ($\approx0.2$)
+the models trade accuracy for recall, detecting $54\%$ of positive cases with
+a precision of $36\%$.
+
+The largest effect in the ablation (Table~\ref{tab:ablation}) comes from
+preprocessing: applying the codebook rules raises F1 by $0.016$ (about three
+fold standard deviations) for both logistic models, almost entirely through
+precision ($0.339\to0.359$ at equal recall), since, e.g., ``88 = no days of
+poor health'' no longer reads as 88 days. Class weighting, in contrast, has
+no effect: as $\omega$ grows the selected threshold rises from $0.22$ to
+$0.75$ while F1 stays within $0.001$. Weighting mostly shifts the predicted
+probabilities, which threshold tuning already compensates, so the imbalance
+is handled by the threshold alone. Since the model underfits, further gains
+should come from richer features rather than from regularization or
+reweighting.
+\pending{Person 3: linear vs.\ logistic comparison once
+Table~\ref{tab:methods} is complete;
+AIcrowd score of the submitted model.}
+
+% ============================================================================
+% OWNER: Person 3 (conclusion, reproducibility)
+% ============================================================================
+\section{Conclusion}
+\pending{Final model, its nested-CV F1 and AIcrowd score; main lessons;
+limitations.}
+
+\section*{Reproducibility}
+Code: \pending{public GitHub URL and commit}. \texttt{run.py} reproduces the
+submitted predictions; \texttt{tune\_models.py} defines the tuning grids,
+and \texttt{baseline\_table.py}, \texttt{imbalance.py} and
+\texttt{sweep\_logistic.py} reproduce Tables~\ref{tab:grid}--\ref{tab:ablation}
+and Fig.~\ref{fig:sweep} (outputs in \texttt{results/}).
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
 \end{document}
