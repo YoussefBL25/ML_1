@@ -1,0 +1,1326 @@
+{
+  "protocol": "nested_stratified_cv",
+  "k": 5,
+  "inner_k": 3,
+  "seed": 0,
+  "thresholds": [
+    0.05,
+    0.06,
+    0.07,
+    0.08,
+    0.09,
+    0.09999999999999999,
+    0.10999999999999999,
+    0.12,
+    0.13,
+    0.13999999999999999,
+    0.14999999999999997,
+    0.15999999999999998,
+    0.16999999999999998,
+    0.18,
+    0.19,
+    0.19999999999999996,
+    0.20999999999999996,
+    0.21999999999999997,
+    0.22999999999999998,
+    0.24,
+    0.24999999999999994,
+    0.25999999999999995,
+    0.26999999999999996,
+    0.27999999999999997,
+    0.29,
+    0.3,
+    0.30999999999999994,
+    0.31999999999999995,
+    0.32999999999999996,
+    0.33999999999999997,
+    0.3499999999999999,
+    0.35999999999999993,
+    0.36999999999999994,
+    0.37999999999999995,
+    0.38999999999999996,
+    0.3999999999999999,
+    0.4099999999999999,
+    0.41999999999999993,
+    0.42999999999999994,
+    0.43999999999999995,
+    0.4499999999999999,
+    0.4599999999999999,
+    0.4699999999999999,
+    0.4799999999999999,
+    0.48999999999999994,
+    0.49999999999999994,
+    0.5099999999999999,
+    0.5199999999999999,
+    0.5299999999999999,
+    0.5399999999999999,
+    0.5499999999999999,
+    0.5599999999999999,
+    0.57,
+    0.58,
+    0.59,
+    0.6,
+    0.61,
+    0.62,
+    0.63,
+    0.6399999999999999,
+    0.6499999999999999,
+    0.6599999999999999,
+    0.6699999999999999,
+    0.6799999999999999,
+    0.69,
+    0.7,
+    0.71,
+    0.72,
+    0.73,
+    0.74,
+    0.7499999999999999,
+    0.7599999999999999,
+    0.7699999999999999,
+    0.7799999999999999,
+    0.7899999999999999,
+    0.7999999999999999,
+    0.8099999999999999,
+    0.82,
+    0.83,
+    0.84,
+    0.8499999999999999,
+    0.8599999999999999,
+    0.8699999999999999,
+    0.8799999999999999,
+    0.8899999999999999,
+    0.8999999999999999,
+    0.9099999999999999,
+    0.9199999999999999,
+    0.9299999999999999,
+    0.94,
+    0.95
+  ],
+  "outer_mean_f1": 0.4156532856456231,
+  "outer_std_f1": 0.005226833970659921,
+  "outer_folds": [
+    {
+      "fold": 0,
+      "f1": 0.4203196498441541,
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 1.0,
+          "max_iters": 300,
+          "lambda_": 0.0001
+        },
+        "seed": 0,
+        "threshold": 0.19999999999999996,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      }
+    },
+    {
+      "fold": 1,
+      "f1": 0.41383934558133295,
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 1.0,
+          "max_iters": 300,
+          "lambda_": 1e-06
+        },
+        "seed": 0,
+        "threshold": 0.19999999999999996,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      }
+    },
+    {
+      "fold": 2,
+      "f1": 0.42311039700073644,
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 1.0,
+          "max_iters": 300,
+          "lambda_": 0.0001
+        },
+        "seed": 0,
+        "threshold": 0.19999999999999996,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      }
+    },
+    {
+      "fold": 3,
+      "f1": 0.40931914038963646,
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 1.0,
+          "max_iters": 300,
+          "lambda_": 0.0001
+        },
+        "seed": 0,
+        "threshold": 0.19999999999999996,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      }
+    },
+    {
+      "fold": 4,
+      "f1": 0.41167789541225536,
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 1.0,
+          "max_iters": 300,
+          "lambda_": 0.0001
+        },
+        "seed": 0,
+        "threshold": 0.19,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      }
+    }
+  ],
+  "best": {
+    "config": {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 1.0,
+        "max_iters": 300,
+        "lambda_": 1e-06
+      },
+      "seed": 0,
+      "threshold": 0.20999999999999996,
+      "preprocessing": {
+        "missing_codes": {},
+        "categorical_columns": [],
+        "add_missing_indicators": false,
+        "degree": 1,
+        "standardize": true,
+        "add_bias": true
+      },
+      "status": "candidate"
+    },
+    "selection_f1": 0.41565508580996235,
+    "selection_fold_std": 0.004875207106349961
+  },
+  "selection_results": [
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.01,
+          "max_iters": 300,
+          "lambda_": 1e-06
+        },
+        "seed": 0,
+        "threshold": 0.3999999999999999,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.3954492253866774,
+      "selection_fold_std": 0.006557061773311148
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.01,
+          "max_iters": 300,
+          "lambda_": 1e-05
+        },
+        "seed": 0,
+        "threshold": 0.3999999999999999,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.39546941857538387,
+      "selection_fold_std": 0.00658520832406723
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.01,
+          "max_iters": 300,
+          "lambda_": 0.0001
+        },
+        "seed": 0,
+        "threshold": 0.3999999999999999,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.39544041972295263,
+      "selection_fold_std": 0.006575260126329962
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.01,
+          "max_iters": 300,
+          "lambda_": 0.001
+        },
+        "seed": 0,
+        "threshold": 0.3999999999999999,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.39534212540624647,
+      "selection_fold_std": 0.006416844155187856
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.01,
+          "max_iters": 300,
+          "lambda_": 0.01
+        },
+        "seed": 0,
+        "threshold": 0.4099999999999999,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.3956952764671579,
+      "selection_fold_std": 0.006294120037964563
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.01,
+          "max_iters": 300,
+          "lambda_": 0.1
+        },
+        "seed": 0,
+        "threshold": 0.42999999999999994,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.39329797253755017,
+      "selection_fold_std": 0.00634871596726503
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.03,
+          "max_iters": 300,
+          "lambda_": 1e-06
+        },
+        "seed": 0,
+        "threshold": 0.27999999999999997,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.40398905473927194,
+      "selection_fold_std": 0.004957253440059032
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.03,
+          "max_iters": 300,
+          "lambda_": 1e-05
+        },
+        "seed": 0,
+        "threshold": 0.27999999999999997,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.40400425322233463,
+      "selection_fold_std": 0.004955728093237654
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.03,
+          "max_iters": 300,
+          "lambda_": 0.0001
+        },
+        "seed": 0,
+        "threshold": 0.27999999999999997,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.4040584668014306,
+      "selection_fold_std": 0.004860762495293374
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.03,
+          "max_iters": 300,
+          "lambda_": 0.001
+        },
+        "seed": 0,
+        "threshold": 0.27999999999999997,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.40441440978467547,
+      "selection_fold_std": 0.0054667934866521216
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.03,
+          "max_iters": 300,
+          "lambda_": 0.01
+        },
+        "seed": 0,
+        "threshold": 0.29,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.4037466232421924,
+      "selection_fold_std": 0.0059671443887317835
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.03,
+          "max_iters": 300,
+          "lambda_": 0.1
+        },
+        "seed": 0,
+        "threshold": 0.37999999999999995,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.39846970991345687,
+      "selection_fold_std": 0.006394420068348026
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.1,
+          "max_iters": 300,
+          "lambda_": 1e-06
+        },
+        "seed": 0,
+        "threshold": 0.21999999999999997,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.41055237172760783,
+      "selection_fold_std": 0.00414896429320875
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.1,
+          "max_iters": 300,
+          "lambda_": 1e-05
+        },
+        "seed": 0,
+        "threshold": 0.21999999999999997,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.41051371383220564,
+      "selection_fold_std": 0.0041450405531980984
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.1,
+          "max_iters": 300,
+          "lambda_": 0.0001
+        },
+        "seed": 0,
+        "threshold": 0.22999999999999998,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.4106100346899061,
+      "selection_fold_std": 0.0035074288245241243
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.1,
+          "max_iters": 300,
+          "lambda_": 0.001
+        },
+        "seed": 0,
+        "threshold": 0.22999999999999998,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.4106939070893757,
+      "selection_fold_std": 0.0035768610148943928
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.1,
+          "max_iters": 300,
+          "lambda_": 0.01
+        },
+        "seed": 0,
+        "threshold": 0.24,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.40900605737361423,
+      "selection_fold_std": 0.005282364474733077
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.1,
+          "max_iters": 300,
+          "lambda_": 0.1
+        },
+        "seed": 0,
+        "threshold": 0.37999999999999995,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.3994639106174049,
+      "selection_fold_std": 0.006299154946442903
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.3,
+          "max_iters": 300,
+          "lambda_": 1e-06
+        },
+        "seed": 0,
+        "threshold": 0.19,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.41472607520400007,
+      "selection_fold_std": 0.0035181588537279212
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.3,
+          "max_iters": 300,
+          "lambda_": 1e-05
+        },
+        "seed": 0,
+        "threshold": 0.19,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.41473812423873324,
+      "selection_fold_std": 0.0034863769867513124
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.3,
+          "max_iters": 300,
+          "lambda_": 0.0001
+        },
+        "seed": 0,
+        "threshold": 0.19,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.414619016874913,
+      "selection_fold_std": 0.003441463206569987
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.3,
+          "max_iters": 300,
+          "lambda_": 0.001
+        },
+        "seed": 0,
+        "threshold": 0.21999999999999997,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.4141464034208781,
+      "selection_fold_std": 0.004434770399922169
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.3,
+          "max_iters": 300,
+          "lambda_": 0.01
+        },
+        "seed": 0,
+        "threshold": 0.24999999999999994,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.4118439131629569,
+      "selection_fold_std": 0.003741776380285795
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 0.3,
+          "max_iters": 300,
+          "lambda_": 0.1
+        },
+        "seed": 0,
+        "threshold": 0.37999999999999995,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.3994793881522145,
+      "selection_fold_std": 0.006273424417282633
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 1.0,
+          "max_iters": 300,
+          "lambda_": 1e-06
+        },
+        "seed": 0,
+        "threshold": 0.20999999999999996,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.41565508580996235,
+      "selection_fold_std": 0.004875207106349961
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 1.0,
+          "max_iters": 300,
+          "lambda_": 1e-05
+        },
+        "seed": 0,
+        "threshold": 0.20999999999999996,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.41564492056185576,
+      "selection_fold_std": 0.004885723185445703
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 1.0,
+          "max_iters": 300,
+          "lambda_": 0.0001
+        },
+        "seed": 0,
+        "threshold": 0.19999999999999996,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.41563197498028626,
+      "selection_fold_std": 0.0050479716690100705
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 1.0,
+          "max_iters": 300,
+          "lambda_": 0.001
+        },
+        "seed": 0,
+        "threshold": 0.19999999999999996,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.41550230270860977,
+      "selection_fold_std": 0.004290818400290485
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 1.0,
+          "max_iters": 300,
+          "lambda_": 0.01
+        },
+        "seed": 0,
+        "threshold": 0.24,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.39992075546457106,
+      "selection_fold_std": 0.002657648906649706
+    },
+    {
+      "config": {
+        "model": "reg_logistic_regression",
+        "params": {
+          "gamma": 1.0,
+          "max_iters": 300,
+          "lambda_": 0.1
+        },
+        "seed": 0,
+        "threshold": 0.20999999999999996,
+        "preprocessing": {
+          "missing_codes": {},
+          "categorical_columns": [],
+          "add_missing_indicators": false,
+          "degree": 1,
+          "standardize": true,
+          "add_bias": true
+        },
+        "status": "candidate"
+      },
+      "selection_f1": 0.18394417989571432,
+      "selection_fold_std": 0.0015395243627598148
+    }
+  ],
+  "outer_metrics": {
+    "f1": {
+      "mean": 0.4156532856456231,
+      "std": 0.005226833970659921
+    },
+    "precision": {
+      "mean": 0.3374967352926956,
+      "std": 0.006135122001562102
+    },
+    "recall": {
+      "mean": 0.5411561691113029,
+      "std": 0.009635729841804108
+    },
+    "accuracy": {
+      "mean": 0.8656284760845383,
+      "std": 0.0028533960032031064
+    },
+    "threshold": {
+      "mean": 0.19799999999999995,
+      "std": 0.003999999999999982
+    }
+  },
+  "tuning_grid": [
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.01,
+        "max_iters": 300,
+        "lambda_": 1e-06
+      },
+      "inner_f1": 0.3954492253866774,
+      "inner_fold_std": 0.006557061773311148,
+      "threshold": 0.3999999999999999,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.01,
+        "max_iters": 300,
+        "lambda_": 1e-05
+      },
+      "inner_f1": 0.39546941857538387,
+      "inner_fold_std": 0.00658520832406723,
+      "threshold": 0.3999999999999999,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.01,
+        "max_iters": 300,
+        "lambda_": 0.0001
+      },
+      "inner_f1": 0.39544041972295263,
+      "inner_fold_std": 0.006575260126329962,
+      "threshold": 0.3999999999999999,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.01,
+        "max_iters": 300,
+        "lambda_": 0.001
+      },
+      "inner_f1": 0.39534212540624647,
+      "inner_fold_std": 0.006416844155187856,
+      "threshold": 0.3999999999999999,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.01,
+        "max_iters": 300,
+        "lambda_": 0.01
+      },
+      "inner_f1": 0.3956952764671579,
+      "inner_fold_std": 0.006294120037964563,
+      "threshold": 0.4099999999999999,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.01,
+        "max_iters": 300,
+        "lambda_": 0.1
+      },
+      "inner_f1": 0.39329797253755017,
+      "inner_fold_std": 0.00634871596726503,
+      "threshold": 0.42999999999999994,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.03,
+        "max_iters": 300,
+        "lambda_": 1e-06
+      },
+      "inner_f1": 0.40398905473927194,
+      "inner_fold_std": 0.004957253440059032,
+      "threshold": 0.27999999999999997,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.03,
+        "max_iters": 300,
+        "lambda_": 1e-05
+      },
+      "inner_f1": 0.40400425322233463,
+      "inner_fold_std": 0.004955728093237654,
+      "threshold": 0.27999999999999997,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.03,
+        "max_iters": 300,
+        "lambda_": 0.0001
+      },
+      "inner_f1": 0.4040584668014306,
+      "inner_fold_std": 0.004860762495293374,
+      "threshold": 0.27999999999999997,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.03,
+        "max_iters": 300,
+        "lambda_": 0.001
+      },
+      "inner_f1": 0.40441440978467547,
+      "inner_fold_std": 0.0054667934866521216,
+      "threshold": 0.27999999999999997,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.03,
+        "max_iters": 300,
+        "lambda_": 0.01
+      },
+      "inner_f1": 0.4037466232421924,
+      "inner_fold_std": 0.0059671443887317835,
+      "threshold": 0.29,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.03,
+        "max_iters": 300,
+        "lambda_": 0.1
+      },
+      "inner_f1": 0.39846970991345687,
+      "inner_fold_std": 0.006394420068348026,
+      "threshold": 0.37999999999999995,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.1,
+        "max_iters": 300,
+        "lambda_": 1e-06
+      },
+      "inner_f1": 0.41055237172760783,
+      "inner_fold_std": 0.00414896429320875,
+      "threshold": 0.21999999999999997,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.1,
+        "max_iters": 300,
+        "lambda_": 1e-05
+      },
+      "inner_f1": 0.41051371383220564,
+      "inner_fold_std": 0.0041450405531980984,
+      "threshold": 0.21999999999999997,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.1,
+        "max_iters": 300,
+        "lambda_": 0.0001
+      },
+      "inner_f1": 0.4106100346899061,
+      "inner_fold_std": 0.0035074288245241243,
+      "threshold": 0.22999999999999998,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.1,
+        "max_iters": 300,
+        "lambda_": 0.001
+      },
+      "inner_f1": 0.4106939070893757,
+      "inner_fold_std": 0.0035768610148943928,
+      "threshold": 0.22999999999999998,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.1,
+        "max_iters": 300,
+        "lambda_": 0.01
+      },
+      "inner_f1": 0.40900605737361423,
+      "inner_fold_std": 0.005282364474733077,
+      "threshold": 0.24,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.1,
+        "max_iters": 300,
+        "lambda_": 0.1
+      },
+      "inner_f1": 0.3994639106174049,
+      "inner_fold_std": 0.006299154946442903,
+      "threshold": 0.37999999999999995,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.3,
+        "max_iters": 300,
+        "lambda_": 1e-06
+      },
+      "inner_f1": 0.41472607520400007,
+      "inner_fold_std": 0.0035181588537279212,
+      "threshold": 0.19,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.3,
+        "max_iters": 300,
+        "lambda_": 1e-05
+      },
+      "inner_f1": 0.41473812423873324,
+      "inner_fold_std": 0.0034863769867513124,
+      "threshold": 0.19,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.3,
+        "max_iters": 300,
+        "lambda_": 0.0001
+      },
+      "inner_f1": 0.414619016874913,
+      "inner_fold_std": 0.003441463206569987,
+      "threshold": 0.19,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.3,
+        "max_iters": 300,
+        "lambda_": 0.001
+      },
+      "inner_f1": 0.4141464034208781,
+      "inner_fold_std": 0.004434770399922169,
+      "threshold": 0.21999999999999997,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.3,
+        "max_iters": 300,
+        "lambda_": 0.01
+      },
+      "inner_f1": 0.4118439131629569,
+      "inner_fold_std": 0.003741776380285795,
+      "threshold": 0.24999999999999994,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 0.3,
+        "max_iters": 300,
+        "lambda_": 0.1
+      },
+      "inner_f1": 0.3994793881522145,
+      "inner_fold_std": 0.006273424417282633,
+      "threshold": 0.37999999999999995,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 1.0,
+        "max_iters": 300,
+        "lambda_": 1e-06
+      },
+      "inner_f1": 0.41565508580996235,
+      "inner_fold_std": 0.004875207106349961,
+      "threshold": 0.20999999999999996,
+      "outer_folds_selected": 1
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 1.0,
+        "max_iters": 300,
+        "lambda_": 1e-05
+      },
+      "inner_f1": 0.41564492056185576,
+      "inner_fold_std": 0.004885723185445703,
+      "threshold": 0.20999999999999996,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 1.0,
+        "max_iters": 300,
+        "lambda_": 0.0001
+      },
+      "inner_f1": 0.41563197498028626,
+      "inner_fold_std": 0.0050479716690100705,
+      "threshold": 0.19999999999999996,
+      "outer_folds_selected": 4
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 1.0,
+        "max_iters": 300,
+        "lambda_": 0.001
+      },
+      "inner_f1": 0.41550230270860977,
+      "inner_fold_std": 0.004290818400290485,
+      "threshold": 0.19999999999999996,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 1.0,
+        "max_iters": 300,
+        "lambda_": 0.01
+      },
+      "inner_f1": 0.39992075546457106,
+      "inner_fold_std": 0.002657648906649706,
+      "threshold": 0.24,
+      "outer_folds_selected": 0
+    },
+    {
+      "model": "reg_logistic_regression",
+      "params": {
+        "gamma": 1.0,
+        "max_iters": 300,
+        "lambda_": 0.1
+      },
+      "inner_f1": 0.18394417989571432,
+      "inner_fold_std": 0.0015395243627598148,
+      "threshold": 0.20999999999999996,
+      "outer_folds_selected": 0
+    }
+  ],
+  "elapsed_s": 4079.6819044000003,
+  "environment": {
+    "python": "3.14.3",
+    "numpy": "2.4.4"
+  },
+  "training_shape": [
+    328135,
+    321
+  ]
+}

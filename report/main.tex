@@ -78,59 +78,38 @@ $L(w)=\frac1N\sum_i \log(1+e^{x_i^\top w})-y_i x_i^\top w$, evaluated with
 $\lambda\|w\|^2$ (bias included). Both use full-batch gradient descent from
 $w=0$.
 
-\textit{Hyperparameter tuning} proceeds in three steps. (i)~\emph{Ranges
-from theory.} The logistic Hessian is bounded by $X^\top X/(4N)$, so gradient
-descent is guaranteed to converge for $\gamma<8/\lambda_{\max}(X^\top X/N)$;
-power iteration gives $\lambda_{\max}\approx14.0$, i.e.\ $\gamma<0.57$, and we
-take $\gamma\in\{0.1,0.25,0.5\}$. At $\gamma=0.5$ the training loss changes by
-$0.06\%$ between 300 and 600 iterations, so we fix 300 iterations. Training
-and validation losses are nearly equal ($0.219$ vs.\ $0.221$): the model
-underfits, so $\lambda$ only needs one value per decade, from no visible
-effect to a clear penalty, $\lambda\in\{10^{-4},10^{-3},10^{-2}\}$.
-(ii)~\emph{Selection.} All $3+9$ combinations are scored by inner CV in every
-outer fold (Section~\ref{sec:protocol}), and the combination and threshold
-with the highest inner-CV F1 are kept. Applied to the full training set
-(Table~\ref{tab:grid}), this rule gives the final models: $\gamma=0.5$ for
-logistic regression and $\gamma=0.5$, $\lambda=10^{-3}$ for the regularized
-variant, both with threshold $0.20$. $\gamma=0.1$ has not converged
-($-0.004$), $\lambda=10^{-2}$ over-regularizes ($-0.004$), and the remaining
-combinations lie within $0.0007$ of each other, well below the inner-fold
-standard deviation ($\approx0.003$): they are statistically tied, and the
-outer folds select only among them. (iii)~\emph{Resolution check.} A wider
-sweep on a development split inside the first outer training fold
-(Fig.~\ref{fig:sweep}) shows that F1 is flat for $\gamma\in[0.5,1]$ and
-$\lambda\le10^{-3}$, and drops outside, so a finer grid cannot gain more than
-$0.0001$.
-
-\begin{table}[t]
-\centering\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{lcccc}
-\toprule
-& \multicolumn{1}{c}{Logistic} & \multicolumn{3}{c}{Regularized logistic} \\
-\cmidrule(lr){2-2}\cmidrule(lr){3-5}
-$\gamma$ & $\lambda=0$ & $10^{-4}$ & $10^{-3}$ & $10^{-2}$ \\
-\midrule
-0.1  & .4277 & .4276 & .4269 & .4255 \\
-0.25 & .4314\,(1) & \textbf{.4316} & .4310 & .4270 \\
-0.5  & \textbf{.4315}\,(4) & .4313\,(3) & \textbf{.4317}\,(2) & .4271 \\
-\bottomrule
-\end{tabular}
-\caption{Tuning grid: inner-CV F1 (3 folds, full training set) of each
-combination; in parentheses, the number of the 5 outer folds selecting it.
-Bold: best per model. Inner-fold std $\approx0.003$.}
-\label{tab:grid}
-\end{table}
+\textit{Hyperparameter tuning.} Each hyperparameter is searched over a
+log-spaced interval wide enough to show both failure modes. The logistic
+Hessian is bounded by $X^\top X/(4N)$, so gradient descent is guaranteed to
+converge for $\gamma<8/\lambda_{\max}(X^\top X/N)\approx0.57$ (power
+iteration gives $\lambda_{\max}\approx14.0$); we take
+$\gamma\in\{0.01,0.03,0.1,0.3,1\}$, in half decades from too slow to converge
+to beyond this bound, and $\lambda\in\{10^{-6},\dots,10^{-1}\}$, in decades
+from negligible to strong. The number of iterations is fixed at 300: at
+$\gamma=0.5$ the training loss changes by only $0.06\%$ up to 600 iterations.
+All $5+30$ combinations are scored by inner CV in every outer fold, and the
+combination and threshold with the highest inner-CV F1 are kept
+(Section~\ref{sec:protocol}). On the full training set
+(Fig.~\ref{fig:tuning}), F1 increases with $\gamma$ up
+to $0.3$ (gradient descent has not converged below) and is flat between $0.3$
+and $1$; $\lambda$ has no effect up to $10^{-3}$ and lowers F1 beyond, down
+to $0.13$ for $\gamma=1$, $\lambda=10^{-1}$, where the penalty destabilizes
+gradient descent. The best combinations lie within $0.0004$ of each other,
+below the inner-fold standard deviation ($\approx0.004$), so they are tied;
+all outer folds select among them ($\gamma\in\{0.3,1\}$,
+$\lambda\le10^{-3}$). The final models use $\gamma=0.3$ (logistic) and
+$\gamma=0.3$, $\lambda=10^{-4}$ (regularized), both with threshold $0.20$.
+Training and validation losses are nearly equal ($0.219$ vs.\ $0.221$): the
+model underfits, which is why regularization does not help.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/sweep.pdf}
-\caption{Development-split F1 of (regularized) logistic regression after 300
-iterations. Filled points are the values in the tuning grid; hollow points
-are additional sweep values. Left: F1 saturates at $\gamma\approx0.5$ and
-gradient descent becomes unstable at $\gamma=2$. Right: penalties up to
-$10^{-3}$ have no effect, stronger ones reduce F1 (underfitting regime).}
-\label{fig:sweep}
+\includegraphics[width=\columnwidth]{figures/tuning.pdf}
+\caption{Tuning grid: inner-CV F1 (3 folds, full training set) of every
+combination of step size $\gamma$ and penalty $\lambda$ ($\lambda=0$: plain
+logistic regression). Orange frames: selected final models. Grey: diverged
+($F1=0.13$, outside the color scale). Inner-fold std $0.002$--$0.005$.}
+\label{fig:tuning}
 \end{figure}
 
 \subsection{Evaluation protocol}\label{sec:protocol}
@@ -165,8 +144,8 @@ GD (MSE) & \pending{} & & & & \\
 SGD (MSE) & \pending{} & & & & \\
 Least squares & \pending{} & & & & \\
 Ridge & \pending{} & & & & \\
-Logistic & 0.431 $\pm$ 0.005 & 0.359 & 0.541 & 0.874 & 0.20 \\
-Reg.\ logistic & 0.431 $\pm$ 0.005 & 0.361 & 0.538 & 0.875 & 0.21 \\
+Logistic & 0.431 $\pm$ 0.005 & 0.359 & 0.540 & 0.874 & 0.20 \\
+Reg.\ logistic & 0.432 $\pm$ 0.005 & 0.358 & 0.543 & 0.874 & 0.20 \\
 \bottomrule
 \end{tabular}
 \caption{Outer-fold nested CV results (mean over 5 folds; F1 $\pm$ std),
@@ -181,23 +160,23 @@ BRFSS preprocessing. Thr.\ = mean selected threshold.}
 Configuration & F1 & Thr. \\
 \midrule
 \multicolumn{3}{l}{\textit{Preprocessing (logistic, nested CV)}} \\
-Generic (median imputation, scaling) & 0.416 $\pm$ 0.005 & 0.20 \\
+Generic (median imputation, scaling) & 0.415 $\pm$ 0.005 & 0.20 \\
 BRFSS codebook rules & 0.431 $\pm$ 0.005 & 0.20 \\
 \multicolumn{3}{l}{\textit{Class weighting (reg.\ logistic)}} \\
-$\omega=1$ (unweighted) & 0.431 $\pm$ 0.005 & 0.22 \\
+$\omega=1$ (unweighted) & 0.432 $\pm$ 0.005 & 0.21 \\
 $\omega=\sqrt r\approx3.2$ & 0.431 $\pm$ 0.005 & 0.48 \\
 $\omega=r\approx10.3$ & 0.430 $\pm$ 0.005 & 0.75 \\
 \bottomrule
 \end{tabular}
-\caption{Ablation on identical folds (seed 0). Weighting rows use fixed
-$\gamma=0.5$, $\lambda=10^{-4}$, with the threshold tuned on inner folds.}
+\caption{Ablation on identical folds (seed 0). Weighting rows use the tuned
+$\gamma=0.3$, $\lambda=10^{-4}$, with the threshold tuned on inner folds.}
 \label{tab:ablation}
 \end{table}
 
-Logistic and regularized logistic regression tie ($0.431\pm0.005$), as
-expected from the flat tuning grid (Table~\ref{tab:grid}): the selected
-penalty is always small ($\lambda\le10^{-3}$) and $\gamma=0.5$ is selected in
-9 of 10 outer folds. Accuracy is not informative here:
+Logistic and regularized logistic regression tie ($0.431$ vs.\ $0.432$,
+std $0.005$), as expected from the flat tuning grid (Fig.~\ref{fig:tuning}):
+the selected penalty is always small ($\lambda\le10^{-3}$) and $\gamma$ is
+$0.3$ or $1$ in all 10 outer folds. Accuracy is not informative here:
 predicting ``no disease'' for everyone already reaches $0.912$, above every
 model in Table~\ref{tab:methods}. At the F1-optimal threshold ($\approx0.2$)
 the models trade accuracy for recall, detecting $54\%$ of positive cases with
@@ -205,11 +184,13 @@ a precision of $36\%$.
 
 The largest effect in the ablation (Table~\ref{tab:ablation}) comes from
 preprocessing: applying the codebook rules raises F1 by $0.016$ (about three
-fold standard deviations) for both logistic models, almost entirely through
-precision ($0.339\to0.359$ at equal recall), since, e.g., ``88 = no days of
+fold standard deviations) for both logistic models ($0.415\to0.431$ and
+$0.416\to0.432$), entirely through precision ($0.338\to0.359$ at equal recall
+$0.540$), since, e.g., ``88 = no days of
 poor health'' no longer reads as 88 days. Class weighting, in contrast, has
-no effect: as $\omega$ grows the selected threshold rises from $0.22$ to
-$0.75$ while F1 stays within $0.001$. Weighting mostly shifts the predicted
+no effect: as $\omega$ grows the selected threshold rises from $0.21$ to
+$0.75$ while F1 changes by at most $0.0013$, a quarter of the fold standard
+deviation. Weighting mostly shifts the predicted
 probabilities, which threshold tuning already compensates, so the imbalance
 is handled by the threshold alone. Since the model underfits, further gains
 should come from richer features rather than from regularization or
@@ -227,10 +208,11 @@ limitations.}
 
 \section*{Reproducibility}
 Code: \pending{public GitHub URL and commit}. \texttt{run.py} reproduces the
-submitted predictions; \texttt{tune\_models.py} defines the tuning grids,
-and \texttt{baseline\_table.py}, \texttt{imbalance.py} and
-\texttt{sweep\_logistic.py} reproduce Tables~\ref{tab:grid}--\ref{tab:ablation}
-and Fig.~\ref{fig:sweep} (outputs in \texttt{results/}).
+submitted predictions; \texttt{tune\_models.py} defines the tuning grids and
+runs the nested CV (Table~\ref{tab:methods} and the preprocessing rows of
+Table~\ref{tab:ablation}), \texttt{imbalance.py} the weighting rows, and
+\texttt{plots.py} draws Fig.~\ref{fig:tuning} from the outputs in
+\texttt{results/}.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}

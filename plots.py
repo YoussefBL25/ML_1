@@ -1,71 +1,85 @@
 """Report figures, drawn from the saved results.
 
-tuning.pdf: cross-validated tuning grids of tune_models.py: F1 against gamma
-for logistic regression, and against lambda_ at the selected gamma for
-regularized logistic regression.
+tuning.pdf: heatmap of the cross-validated tuning grid of tune_models.py,
+inner-CV F1 for every (gamma, lambda_) combination; lambda_ = 0 is plain
+logistic regression. Selected models are outlined.
 """
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import LinearSegmentedColormap, Normalize
+from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 
 from data import ROOT
 
-SERIES, INK, MUTED, GRID = "#2a78d6", "#0b0b0b", "#52514e", "#e4e3df"
+INK, MUTED, SURFACE, NEUTRAL, ACCENT = "#0b0b0b", "#52514e", "#ffffff", "#e4e3df", "#eb6834"
+BLUES = LinearSegmentedColormap.from_list("blues", [
+    "#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"])
+F1_RANGE = (0.41, 0.432)
+GAP = 0.25
 
 
-def style(ax, title, xlabel):
-    ax.set_title(title, fontsize=8, color=INK, loc="left")
-    ax.set_xlabel(xlabel, fontsize=7, color=MUTED)
-    ax.set_xscale("log")
-    ax.tick_params(labelsize=6.5, colors=MUTED, length=2)
-    ax.minorticks_off()
-    ax.grid(axis="y", color=GRID, linewidth=0.6)
-    ax.set_axisbelow(True)
-    for side in ("top", "right"):
-        ax.spines[side].set_visible(False)
-    for side in ("left", "bottom"):
-        ax.spines[side].set_color(MUTED)
-        ax.spines[side].set_linewidth(0.6)
-
-
-def draw(ax, rows, x_of, selected):
-    rows = sorted(rows, key=x_of)
-    xs = [x_of(r) for r in rows]
-    ax.errorbar(xs, [r["inner_f1"] for r in rows], yerr=[r["inner_fold_std"] for r in rows],
-                color=SERIES, linewidth=1.5, elinewidth=0.8, capsize=2, zorder=2)
-    for x, r in zip(xs, rows):
-        ax.plot(x, r["inner_f1"], "o", markersize=4.5, markeredgewidth=1.2,
-                markeredgecolor=SERIES, zorder=3,
-                markerfacecolor=SERIES if r["params"] == selected else "white")
+def load(results, name):
+    with (results / f"tuning_{name}.json").open(encoding="utf-8") as stream:
+        return json.load(stream)
 
 
 def tuning_figure(results, output):
-    def load(name):
-        with (results / f"tuning_{name}.json").open(encoding="utf-8") as stream:
-            return json.load(stream)
+    plain, regularized = load(results, "logistic_regression"), load(results, "reg_logistic_regression")
+    cells = {(r["params"]["gamma"], 0.0): r["inner_f1"] for r in plain["tuning_grid"]}
+    cells.update({(r["params"]["gamma"], r["params"]["lambda_"]): r["inner_f1"]
+                  for r in regularized["tuning_grid"]})
+    selected = {(plain["best"]["config"]["params"]["gamma"], 0.0),
+                tuple(regularized["best"]["config"]["params"][k] for k in ("gamma", "lambda_"))}
+    gammas = sorted({g for g, _ in cells})
+    lambdas = sorted({l for _, l in cells})
+    norm = Normalize(*F1_RANGE)
 
-    plain, regularized = load("logistic_regression"), load("reg_logistic_regression")
-    best_plain = plain["best"]["config"]["params"]
-    best_reg = regularized["best"]["config"]["params"]
-    zero = min(r["params"]["lambda_"] for r in regularized["tuning_grid"]) / 10
-    at_gamma = [dict(r, params=dict(r["params"], lambda_=0.0)) for r in plain["tuning_grid"]
-                if r["params"]["gamma"] == best_reg["gamma"]]
-    at_gamma += [r for r in regularized["tuning_grid"] if r["params"]["gamma"] == best_reg["gamma"]]
+    fig, ax = plt.subplots(figsize=(3.4, 2.05))
+    for i, gamma in enumerate(gammas):
+        for j, lambda_ in enumerate(lambdas):
+            x, f1 = j + (GAP if j else 0.0), cells[(gamma, lambda_)]
+            inside = f1 >= F1_RANGE[0]
+            ax.add_patch(Rectangle((x, i), 1, 1, facecolor=BLUES(norm(f1)) if inside else NEUTRAL,
+                                   edgecolor=SURFACE, linewidth=1.2))
+            dark = inside and norm(f1) > 0.55
+            ax.text(x + 0.5, i + 0.5, f"{f1:.4f}"[1:] if inside else f"{f1:.2f}",
+                    ha="center", va="center", fontsize=5.6,
+                    color=SURFACE if dark else INK)
+            if (gamma, lambda_) in selected:
+                ax.add_patch(Rectangle((x + 0.07, i + 0.07), 0.86, 0.86, fill=False,
+                                       edgecolor=ACCENT, linewidth=1.6))
 
-    fig, (left, right) = plt.subplots(1, 2, figsize=(3.4, 1.8), sharey=True)
-    draw(left, plain["tuning_grid"], lambda r: r["params"]["gamma"], best_plain)
-    style(left, "Logistic: F1 vs $\\gamma$", "$\\gamma$")
-    left.set_ylabel("inner-CV F1", fontsize=7, color=MUTED)
-    draw(right, at_gamma, lambda r: r["params"]["lambda_"] or zero, best_reg)
-    style(right, f"Reg. logistic: F1 vs $\\lambda$ ($\\gamma={best_reg['gamma']:g}$)", "$\\lambda$")
-    right.set_xticks([zero] + [10.0 ** e for e in range(-5, 0, 2)])
-    right.set_xticklabels(["0"] + [f"$10^{{{e}}}$" for e in range(-5, 0, 2)])
-    fig.tight_layout(pad=0.4, w_pad=0.8)
+    centers = [j + 0.5 + (GAP if j else 0.0) for j in range(len(lambdas))]
+    ax.set_xticks(centers)
+    ax.set_xticklabels(["0"] + [f"$10^{{{round(math.log10(l))}}}$" for l in lambdas[1:]])
+    ax.set_yticks([i + 0.5 for i in range(len(gammas))])
+    ax.set_yticklabels([f"{g:g}" for g in gammas])
+    ax.set_xlim(0, len(lambdas) + GAP)
+    ax.set_ylim(len(gammas), 0)
+    ax.set_xlabel("$\\lambda$", fontsize=7, color=MUTED, labelpad=1)
+    ax.set_ylabel("$\\gamma$", fontsize=7, color=MUTED, rotation=0, labelpad=6)
+    ax.tick_params(labelsize=6, colors=MUTED, length=0, pad=2)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.text(0.5, -0.25, "Logistic", ha="center", va="bottom", fontsize=6.5, color=INK)
+    ax.text(1 + GAP + (len(lambdas) - 1) / 2, -0.25, "Regularized logistic",
+            ha="center", va="bottom", fontsize=6.5, color=INK)
+
+    bar = fig.colorbar(ScalarMappable(norm=norm, cmap=BLUES), ax=ax, fraction=0.04, pad=0.02)
+    bar.set_ticks([0.41, 0.42, 0.43])
+    bar.set_label("inner-CV F1", fontsize=6.5, color=MUTED)
+    bar.ax.tick_params(labelsize=5.5, colors=MUTED, length=2)
+    bar.outline.set_visible(False)
+
+    fig.tight_layout(pad=0.3)
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output)
     print(f"Saved {output}")
