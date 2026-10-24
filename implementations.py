@@ -82,8 +82,8 @@ def compute_logistic_loss(y, tx, w):
         where p_i = sigma(x_i^T w)
 
     Numerical Stability:
-        Predictions p are clipped to [1e-15, 1.0 - 1e-15] to prevent log(0)
-        which results in NaN or -inf.
+        logaddexp evaluates softplus without clipping the loss of highly
+        confident incorrect predictions or overflowing exp.
 
     Args:
         y (np.ndarray): Binary target labels in {0, 1} of shape (N,).
@@ -93,13 +93,8 @@ def compute_logistic_loss(y, tx, w):
     Returns:
         np.float64: 0-D scalar logistic loss value.
     """
-    # Linear projection: tx @ w has shape (N,)
-    pred = sigmoid(tx @ w)
-    # Numerical clip to avoid log(0) undefined domain
-    eps = 1e-15
-    pred = np.clip(pred, eps, 1.0 - eps)
-    # Negative log-likelihood average over N samples
-    loss = -np.mean(y * np.log(pred) + (1.0 - y) * np.log(1.0 - pred))
+    logits = tx @ w
+    loss = np.mean(np.logaddexp(0.0, logits) - y * logits)
     return np.float64(loss)
 
 
@@ -211,7 +206,11 @@ def least_squares(y, tx):
     # Dimension analysis: tx.T @ tx is (D, D), tx.T @ y is (D,)
     A = tx.T @ tx
     b = tx.T @ y
-    w = np.linalg.solve(A, b).ravel()
+    try:
+        w = np.linalg.solve(A, b).ravel()
+    except np.linalg.LinAlgError:
+        # Collinear features can make the normal equations singular.
+        w = (np.linalg.pinv(A) @ b).ravel()
 
     loss = compute_mse_loss(y, tx, w)
     return w, loss

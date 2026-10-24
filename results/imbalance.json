@@ -1,0 +1,30 @@
+{
+  "params": {
+    "gamma": 0.3,
+    "max_iters": 300,
+    "lambda_": 0.0001
+  },
+  "folds": 5,
+  "inner_folds": 3,
+  "seed": 0,
+  "rows": [
+    {
+      "pos_weight": "1",
+      "f1": 0.4315685542287831,
+      "std": 0.0047114878395142544,
+      "deployment_threshold": 0.20999999999999996
+    },
+    {
+      "pos_weight": "sqrt",
+      "f1": 0.43118692473818765,
+      "std": 0.004510002860951245,
+      "deployment_threshold": 0.4799999999999999
+    },
+    {
+      "pos_weight": "balanced",
+      "f1": 0.43030965739554594,
+      "std": 0.00515663697838427,
+      "deployment_threshold": 0.7499999999999999
+    }
+  ]
+}

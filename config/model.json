@@ -1,0 +1,15 @@
+{
+  "model": "ridge_regression",
+  "params": {"lambda_": 0.000001},
+  "threshold": 0.22,
+  "seed": 0,
+  "status": "provisional_legacy_baseline_not_final",
+  "preprocessing": {
+    "missing_codes": {},
+    "categorical_columns": [],
+    "add_missing_indicators": false,
+    "degree": 1,
+    "standardize": true,
+    "add_bias": true
+  }
+}

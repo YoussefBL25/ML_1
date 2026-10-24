@@ -1,0 +1,32 @@
+[
+  {
+    "model": "ridge_regression",
+    "params": {"lambda_": 0.001},
+    "seed": 0,
+    "preprocessing": {}
+  },
+  {
+    "model": "ridge_regression",
+    "params": {"lambda_": 0.001},
+    "seed": 0,
+    "preprocessing": {"add_missing_indicators": true}
+  },
+  {
+    "model": "ridge_regression",
+    "params": {"lambda_": 0.001},
+    "seed": 0,
+    "preprocessing": {"degree": 2}
+  },
+  {
+    "model": "logistic_regression",
+    "params": {"gamma": 0.03, "max_iters": 200},
+    "seed": 0,
+    "preprocessing": {}
+  },
+  {
+    "model": "reg_logistic_regression",
+    "params": {"gamma": 0.03, "max_iters": 200, "lambda_": 0.001},
+    "seed": 0,
+    "preprocessing": {}
+  }
+]
