@@ -7,6 +7,7 @@ import numpy as np
 
 from data import DATA_PATH, ROOT, load_data
 from helpers import create_csv_submission
+from interactions import BEST_CONFIG, load_best_config, model_from_config
 from models import load_config, score_model, train_model
 from preprocess import Preprocessor, binary_labels
 
@@ -17,8 +18,12 @@ def generate_submission(config, data_dir=DATA_PATH, output=ROOT / "submission.cs
     processor = Preprocessor(**config["preprocessing"])
     train_X = processor.fit_transform(x_train)
     test_X = processor.transform(x_test)
-    w, loss = train_model(config, binary_labels(y_train), train_X)
-    scores = score_model(config, test_X, w)
+    if config["model"] == "interaction_logistic_regression":
+        model = model_from_config(config).fit(binary_labels(y_train), train_X)
+        loss, scores = model.loss_, model.predict_proba(test_X)
+    else:
+        w, loss = train_model(config, binary_labels(y_train), train_X)
+        scores = score_model(config, test_X, w)
     predictions = (scores >= config["threshold"]).astype(int) * 2 - 1
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -31,13 +36,15 @@ def generate_submission(config, data_dir=DATA_PATH, output=ROOT / "submission.cs
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path, default=ROOT / "config" / "model.json")
+    parser.add_argument("--config", type=Path, default=BEST_CONFIG)
     parser.add_argument("--data-dir", type=Path, default=DATA_PATH)
     parser.add_argument("--output", type=Path, default=ROOT / "submission.csv")
     parser.add_argument("--no-cache", action="store_true")
     args = parser.parse_args(argv)
     try:
-        config = load_config(args.config)
+        config = load_best_config(args.config)
+        if config.get("model") != "interaction_logistic_regression":
+            config = load_config(args.config)
         generate_submission(config, args.data_dir, args.output, not args.no_cache)
     except (OSError, ValueError, TypeError, KeyError, np.linalg.LinAlgError) as exc:
         parser.exit(1, f"Error: {exc}\n")

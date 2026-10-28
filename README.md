@@ -226,13 +226,38 @@ regularized config and compares positive-class loss weights 1, sqrt(r) and r
 the cross-validated grid scores. The regularized logistic grid (30
 combinations) takes about one hour on 16 cores.
 
+### Final model (best AIcrowd submission)
+
+The submitted model is regularized logistic regression with
+`gamma=0.3`, `lambda_=1e-4`, 300 iterations and threshold `0.21`, defined in
+`config/best_model.json` and implemented in `interactions.py`:
+
+1. Preprocessing: the BRFSS codebook rules above, plus a missing-value
+   indicator for every feature with missing values, and one-hot encoding of
+   every feature with 3 to 10 observed values (86 categorical features).
+2. Interactions: a first fit ranks the features by |weight|; the pairwise
+   products of the 40 top features (780 products) are standardized and added,
+   and the model is refit. The ranking uses training rows only.
+
+```bash
+python interactions.py   # writes config/best_model.json from the training features
+python evaluate_best.py  # 5-fold CV, threshold tuned on 3 inner folds (~15 min)
+python evaluate_best.py --n-top 0 --output results/best_model_no_interactions_cv.json
+```
+
+`evaluate_best.py` uses the same outer folds as `tune_models.py` and reports
+F1, precision, recall and accuracy per fold in `results/best_model_cv.json`
+(F1 0.441 +/- 0.006). The threshold 0.21 is the one selected by the same
+3-fold procedure on the full training set. The submission scored F1 0.450 and
+accuracy 0.878 on AIcrowd.
+
 ## Generating submissions
 
 ```bash
-# Provisional baseline; not yet a best-submission reproduction.
+# Reproduces the best AIcrowd submission (about 1.5 min).
 python run.py
 
-# Model selected by an experiment.
+# Any other configuration, e.g. one selected by tune_models.py.
 python run.py --config results/selected_model.json --output submission.csv
 ```
 
@@ -242,10 +267,9 @@ Length mismatches, duplicate/noninteger Ids, and invalid labels are rejected
 before opening the output file. Repeated runs with identical data, configuration,
 and environment are covered by synthetic tests.
 
-After comparing actual AIcrowd submissions, place the exact best configuration
-in `config/model.json` so `python run.py` reproduces its CSV, and verify that
-comparison before final submission. No AIcrowd submission is performed by these
-scripts.
+`python run.py` reads `config/best_model.json` by default and reproduces the
+CSV of the best AIcrowd submission exactly. No AIcrowd submission is performed
+by these scripts.
 
 ## Historical results
 
@@ -294,7 +318,9 @@ Remaining work requiring data or measured findings:
 | `make_preprocessing_config.py` | BRFSS codebook rules -> `config/preprocessing_brfss.json`. |
 | `imbalance.py` | Class-weighted logistic regression ablation. |
 | `plots.py` | Report figures from `results/` (no training). |
-| `run.py` | Configured full-data training and submission generation. |
+| `interactions.py` | Final model: richer preprocessing and pairwise interactions; writes `config/best_model.json`. |
+| `evaluate_best.py` | 5-fold CV of the final model, with and without interactions. |
+| `run.py` | Full-data training and submission generation; defaults to the final model. |
 | `tests/` | Synthetic algorithm, isolation, I/O, and end-to-end checks. |
 | `report/main.tex` | LaTeX report (IEEE template of the course); figures in `report/figures/`. |
 | `results/` | JSON outputs of the experiments above. |
