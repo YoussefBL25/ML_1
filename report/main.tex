@@ -64,7 +64,7 @@ on the feature values, never on the labels.
 Rule & Example \\
 \midrule
 Don't know, refused $\to$ missing & codes 7 and 9 \\
-None $\to 0$ & codes 88, 888, 555; 62\% answer 88 = ``no days'' of poor physical health \\
+None $\to 0$ & 88 = ``no days'', 888, 555 \\
 Drop 32 survey features & identifiers, weights \\
 Drop 29 raw answers & WEIGHT2, cleaned in WTKG3 \\
 Drop 3 nominal features & activity types, kept in computed minutes; one 99.9\% missing \\
@@ -77,12 +77,11 @@ Drop 3 nominal features & activity types, kept in computed minutes; one 99.9\% m
 bias column; all statistics learned on training rows only. Applied alone,
 this is the generic baseline of Table~\ref{tab:ablation}.}
 
-The final model adds two kinds of binary features: a one-hot encoding of
-the nominal features and of every feature with 3 to 10 values, and, for each
-feature with missing values, an indicator of missingness. The indicators are
-informative because many questions are only asked after a given answer: the
-age at diabetes diagnosis, for instance, is missing for respondents without
-diabetes.
+The final model also adds binary features: a one-hot encoding of the
+nominal features and of every feature with 3 to 10 values, and a
+missingness indicator for each feature with missing values. The indicators
+are informative because many questions are asked only after a given answer:
+the age at diabetes diagnosis is missing for respondents without diabetes.
 \pending{Person 1: own improvement, if any.}
 
 \section{Methods}
@@ -91,18 +90,15 @@ diabetes.
 % OWNER: Person 2 (evaluation protocol)
 % ============================================================================
 \subsection{Evaluation protocol}\label{sec:protocol}
-Models are evaluated by nested cross-validation, so that selection and
-evaluation use disjoint data. The training set is split into five
-stratified folds, shared by all experiments. Each fold serves once as the
-test fold; on the four others, the preprocessing statistics are estimated
-and an inner 3-fold cross-validation selects the hyperparameters and the
-threshold $t$ that maximize F1, after which the selected model is retrained
-on them and evaluated on the test fold. We report the mean and standard
-deviation of F1 over the test folds. Two configurations are compared by
-their per-fold F1 difference $\Delta$, which removes the variation due to
-the split, and one is considered better only if $\Delta>0$ in all five
-folds. The submitted model results from the same selection on the full
-training set.
+Models are evaluated by nested cross-validation over five stratified folds
+shared by all experiments. For each test fold, the four other folds
+estimate the preprocessing statistics and, by an inner 3-fold
+cross-validation, select the hyperparameters and the threshold $t$ that
+maximize F1; the selected model is retrained on them and evaluated on the
+test fold, which thus never influences a choice. We report the mean and standard deviation of F1 over the test
+folds. Two configurations are compared by their per-fold F1 difference
+$\Delta$, and one is better only if $\Delta>0$ in all five folds. The
+submitted model results from the same selection on the full training set.
 
 % ============================================================================
 % OWNER: Person 3 (linear methods)
@@ -128,13 +124,11 @@ $\lambda\in\{10^{-6},\dots,10^{-1}\}$ and $t\in\{0.05,0.06,\dots,0.95\}$.
 
 \subsection{Final model}\label{sec:final}
 A linear model cannot capture joint effects, such as smoking being more
-dangerous for older respondents. The final model therefore adds the
-products of the $K$ most important features. Regularized logistic
-regression, which has the highest F1 (Table~\ref{tab:methods}), is first
-fitted to rank the standardized features by $|w_j|$, then refitted with the
-$K(K-1)/2$ standardized products of the top $K$. $K\in\{20,30,\dots,80\}$
-is chosen by 3-fold cross-validation, and $\gamma$, $\lambda$ and $t$ as
-before.
+dangerous for older respondents. The final model therefore fits regularized
+logistic regression, the best method (Table~\ref{tab:methods}), ranks the
+standardized features by $|w_j|$, and refits it with the $K(K-1)/2$
+standardized products of the top $K$, with $K\in\{20,30,\dots,80\}$ chosen
+by 3-fold cross-validation.
 
 % ============================================================================
 % OWNER: Person 2 (results). Person 3: fill the four linear rows of tab:methods.
@@ -142,13 +136,12 @@ before.
 \section{Results}\label{sec:results}
 The final model is the best method (Table~\ref{tab:methods}), with F1
 $=0.441\pm0.006$ in nested cross-validation and $0.454$ on AIcrowd. Its
-gain does not come from the hyperparameters: the inner selection gives
-$\gamma=0.3$, $\lambda=10^{-4}$ and, for the final model, $K=40$, but F1 is
-flat around these values (Fig.~\ref{fig:tuning}) and every outer fold
-selects $\gamma\in\{0.3,1\}$ and $\lambda\le10^{-3}$. Nor does it come from
-regularization: plain and regularized logistic regression are tied,
-$\Delta=0.0003\pm0.0014$, since with training and validation losses of
-$0.219$ and $0.221$ the model does not overfit.
+gain does not come from the hyperparameters: F1 is flat around the selected
+$\gamma=0.3$, $\lambda=10^{-4}$ and $K=40$ (Fig.~\ref{fig:tuning}), and
+every outer fold selects $\gamma\in\{0.3,1\}$ and $\lambda\le10^{-3}$. Nor
+does it come from regularization: plain and regularized logistic regression
+are tied, $\Delta=0.0003\pm0.0014$, as training and validation losses of
+$0.219$ and $0.221$ show no overfitting.
 \pending{Person 3: linear vs.\ logistic comparison once
 Table~\ref{tab:methods} is complete.}
 
@@ -158,8 +151,8 @@ Table~\ref{tab:methods} is complete.}
 \centering
 \includegraphics[width=\columnwidth]{figures/tuning.pdf}
 \caption{Inner-CV F1 on the full training set; $\lambda=0$: plain
-logistic regression. F1 rises with $\gamma$ until gradient descent converges
-and does not depend on $\lambda\le10^{-3}$. Orange: selected.}
+logistic regression; orange: selected. F1 rises with $\gamma$ until
+convergence and is flat for $\lambda\le10^{-3}$.}
 \label{fig:tuning}
 \end{figure}
 
@@ -179,10 +172,9 @@ Reg.\ logistic & 0.432 $\pm$ 0.005 & 0.358 & 0.543 & 0.874 & 0.20 \\
 \textbf{Final model} & \textbf{0.441 $\pm$ 0.006} & 0.369 & 0.549 & 0.877 & 0.21 \\
 \bottomrule
 \end{tabular}
-\caption{Nested cross-validation, mean over the 5 test folds. Thr.: mean
-selected threshold. All rows but the last one-hot encode the nominal
-features only. Always predicting ``no disease'' gives accuracy $0.912$ but
-F1 $=0$.}
+\caption{Nested cross-validation, mean over the 5 test folds; Thr.: mean
+selected threshold. Rows above the last one-hot encode nominal features
+only. Always predicting ``no disease'': accuracy $0.912$, F1 $=0$.}
 \label{tab:methods}
 \end{table}
 
@@ -199,27 +191,25 @@ Generic baseline & 0.416 $\pm$ 0.005 & \\
 + 40-feature interactions & 0.441 $\pm$ 0.006 & $+0.003\pm0.002$ \\
 \bottomrule
 \end{tabular}
-\caption{From the baseline to the final model, one change per row.
-$\Delta$: per-fold gain over the row above. After the baseline,
-$\gamma=0.3$ and $\lambda=10^{-4}$.}
+\caption{From the baseline to the final model, one change per row;
+$\Delta$: per-fold gain over the row above.}
 \label{tab:ablation}
 \end{table}
 
-The gain therefore comes from the features, which Table~\ref{tab:ablation}
-adds one at a time. The codebook rules contribute most, through precision,
-which rises from $0.337$ to $0.361$. One-hot encoding and missing indicators
-then add $0.004$ and $0.005$ in all folds, and the interactions $0.003$ in
-four folds only, a likely but not certain gain. Other additions, such as
-squared or binned features, more interactions or model averaging, changed
-F1 by less than $0.001$.
+The gain therefore comes from the features, added one at a time in
+Table~\ref{tab:ablation}. The codebook rules contribute most, raising
+precision from $0.337$ to $0.361$. One-hot encoding and missing indicators
+add $0.004$ and $0.005$ in all folds, the interactions $0.003$ in four folds
+only, a likely but uncertain gain. Squared or binned features, more
+interactions and model averaging changed F1 by less than $0.001$.
 
 Finally, the class imbalance needs no correction beyond the threshold.
-Multiplying the loss of the positive samples by $3.2$ or $10.3$, the ratio
-of negatives to positives, barely changes F1, $0.431$ and $0.430$ against
-$0.432$, but raises the selected threshold from $0.21$ to $0.48$ and $0.75$.
-Weighting raises all predicted probabilities while keeping their order, so
-a higher threshold gives back the same predictions: as the odds are
-multiplied by about $\omega$, $0.21$ becomes $0.73$ for $\omega=10.3$.
+Weighting the loss of the positive samples by $\omega=10.3$, the ratio of
+negatives to positives, or by its square root $3.2$ gives F1 $0.430$ and
+$0.431$ against $0.432$, but thresholds $0.75$ and $0.48$ instead of
+$0.21$. Weighting multiplies the odds by about $\omega$ without changing
+the order of the predictions, so only the threshold moves: for
+$\omega=10.3$, $0.21$ becomes $0.73$.
 
 % ============================================================================
 % OWNER: Person 3 (conclusion, reproducibility)
