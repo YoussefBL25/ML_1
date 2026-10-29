@@ -55,11 +55,12 @@ showing which choices actually improve F1 (Section~\ref{sec:results}).
 % OWNER: Person 1 (data description, imputation and scaling). Person 2: codebook rules, final-model features.
 % ============================================================================
 \section{Data and preprocessing}\label{sec:data}
-\pending{Person 1, data description: training and test sizes, class
-balance, missing values, feature types. Numbers from the shared EDA:
-328,135 training and 109,379 test respondents, 321 features, 8.8\% positive,
-44.8\% of all values missing, 147 features missing for more than half of the
-respondents, mostly from optional state modules. Optional: EDA figure.}
+The training set has 328,135 respondents and the test set 109,379, each
+described by 321 features; 8.8\% of the training respondents are positive.
+Most features are coded answers, 199 of them with 3 to 10 values; the others
+are counts, durations and measurements on very different scales. 44.8\% of
+all values are missing, and 147 features are missing for more than half of
+the respondents, mostly questions from optional state modules.
 
 The features are coded survey answers, so we first convert them into
 meaningful values with rules from the BRFSS 2015 codebook~\cite{brfss15},
@@ -81,16 +82,16 @@ Drop 3 nominal features & activity types, kept in computed minutes; one 99.9\% m
 \caption{Codebook rules, applied before any learning.}
 \label{tab:codebook}
 \end{table}
-\pending{Person 1, one or two sentences: median imputation, standardization,
-bias column; all statistics learned on training rows only. Applied alone,
-this is the generic baseline of Table~\ref{tab:ablation}.}
+Missing values are then replaced by the training median, features without
+variance are dropped, the others are standardized and a bias column is
+added, with all statistics estimated on the training rows only. Without the
+codebook rules, this is the generic baseline of Table~\ref{tab:ablation}.
 
 The final model also adds binary features: a one-hot encoding of the
 nominal features and of every feature with 3 to 10 values, and a
 missingness indicator for each feature with missing values. The indicators
 are informative because many questions are asked only after a given answer:
 the age at diabetes diagnosis is missing for respondents without diabetes.
-\pending{Person 1: own improvement, if any.}
 
 \section{Methods}\label{sec:methods}
 
