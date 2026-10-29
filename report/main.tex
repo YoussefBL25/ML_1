@@ -25,15 +25,17 @@
 % OWNER: Person 3 (abstract, introduction)
 % ============================================================================
 \begin{abstract}
-We predict coronary heart disease from 328,135 answers to the 2015 BRFSS
-survey, 8.8\% of them positive, and compare four least-squares models with
-plain and regularized logistic regression by nested cross-validation of F1.
-Logistic regression beats the linear models in every fold, $0.432$ against
-at most $0.420$. Our final model, regularized logistic regression with
-pairwise interactions of the 40 most important features, reaches
-$0.441\pm0.006$, and $0.454$ on AIcrowd. Preprocessing with the BRFSS
-codebook gives the largest gain, whereas regularization and class weighting
-do not help a model that underfits.
+We predict self-reported coronary heart disease from the 2015 BRFSS telephone
+survey, a binary task in which only 8.8\% of the respondents are positive,
+with linear and logistic models implemented in NumPy. We clean the coded
+survey answers with rules from the BRFSS codebook, add one-hot encodings,
+missing-value indicators and pairwise interactions, and evaluate every
+choice, including the decision threshold, by nested cross-validation scored
+with F1. The final model, regularized logistic regression with interactions,
+reaches F1 $0.441\pm0.006$ in nested cross-validation and $0.454$ on the
+AIcrowd test set. The codebook rules give the largest gain, while
+regularization and class weighting do not help: the model does not overfit,
+and tuning the threshold already handles the imbalance.
 \end{abstract}
 
 \section{Introduction}
