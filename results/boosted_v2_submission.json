@@ -1,0 +1,48 @@
+{
+  "config_file": "config/boosted_v2.json",
+  "submission": "submission_boosted_v2.csv",
+  "candidate": "trees@200",
+  "rule": "both",
+  "pooled_selection": {
+    "f1": 0.4456548294842131,
+    "checkpoint": 200,
+    "weight": 0.8,
+    "threshold": 0.222
+  },
+  "pooled_validation_rows": 328135,
+  "rows": 109379,
+  "positive_predictions": 13653,
+  "negative_predictions": 95726,
+  "changed_predictions": {
+    "submission_boosted.csv": 2159,
+    "submission_rerun.csv": 2565
+  },
+  "csv_sha256": "3cc1a3f08e2cf8701d119427ba642c64441efeb7ab7ecb7bbbb1ab964abebeec",
+  "elapsed_s": 82.54084073400008,
+  "aicrowd_score": null,
+  "full_fit_metadata": "results/boosting_search/full_v2_trees.json",
+  "full_fit_elapsed_s": 1526.6519883429992,
+  "full_fit_training_rows": 328135,
+  "full_fit_probability_cache": "results/boosting_search/full_v2_trees.npz",
+  "selection_note": "Candidate family/count screened on fold 0 inner validation; weight and threshold selected on pooled inner validation. Evaluation is exploratory, not an untouched final test.",
+  "independent_validation": {
+    "header": "Id,Prediction",
+    "data_rows": 109379,
+    "ids_match_x_test_order": true,
+    "ids_unique": true,
+    "labels": [
+      -1,
+      1
+    ],
+    "positive_predictions": 13653,
+    "changes_vs_submission_boosted": {
+      "total": 2159,
+      "negative_to_positive": 59,
+      "positive_to_negative": 2100
+    },
+    "protected_files_unchanged": true,
+    "code_matches_full_fit": true,
+    "five_fold_confirmation": "results/boosting_v2_confirmation.json (trees@200:both: F1 0.4439 +/- 0.0068, accuracy 0.8847; vs retuned 50/50 blend dF1 -0.0006 (2/5 folds), dAcc +0.0065 (4/5); vs logistic dF1 +0.0027 (4/5), dAcc +0.0004 (4/5))",
+    "checked_utc": "2026-10-29T12:24:06.814750+00:00"
+  }
+}

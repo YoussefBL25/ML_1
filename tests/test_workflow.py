@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -85,6 +86,58 @@ class WorkflowTests(unittest.TestCase):
             with self.subTest(ids=ids), self.assertRaises(ValueError):
                 create_csv_submission(ids, predictions, output)
             self.assertEqual(output.read_text(), "existing content")
+
+    def test_interaction_submission_and_evaluation_cli(self):
+        base = self.root / "base.json"
+        base.write_text("{}", encoding="utf-8")
+        generated = self.root / "nested" / "best.json"
+        prepared = subprocess.run([
+            sys.executable, str(ROOT / "interactions.py"), "--data-dir", str(self.data),
+            "--base", str(base), "--no-cache", "--output", str(generated),
+        ], cwd=self.root, capture_output=True, text=True)
+        self.assertEqual(prepared.returncode, 0, prepared.stderr)
+        self.assertEqual(json.loads(generated.read_text())["model"], "interaction_logistic_regression")
+        config = {"model": "interaction_logistic_regression",
+                  "params": {"gamma": 0.1, "lambda_": 0.001, "max_iters": 10, "n_top": 3},
+                  "threshold": 0.5, "preprocessing": {"add_missing_indicators": True}}
+        config_path = self.root / "interaction.json"
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+        output = self.root / "interaction.csv"
+        command = [sys.executable, str(ROOT / "run.py"), "--data-dir", str(self.data),
+                   "--config", str(config_path), "--output", str(output)]
+        first = subprocess.run(command, cwd=self.root, capture_output=True, text=True)
+        self.assertEqual(first.returncode, 0, first.stderr)
+        contents = output.read_bytes()
+        second = subprocess.run(command, cwd=self.root, capture_output=True, text=True)
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertEqual(contents, output.read_bytes())
+        with output.open() as stream:
+            self.assertEqual([int(row["Id"]) for row in csv.DictReader(stream)], self.test_ids.tolist())
+        evaluation = self.root / "nested" / "evaluation.json"
+        result = subprocess.run([
+            sys.executable, str(ROOT / "evaluate_best.py"), "--data-dir", str(self.data),
+            "--config", str(config_path), "--folds", "3", "--inner-folds", "2",
+            "--seed", "4", "--n-top", "0", "--no-cache", "--output", str(evaluation),
+        ], cwd=self.root, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        saved = json.loads(evaluation.read_text())
+        self.assertEqual(saved["selection_scope"], "threshold_only")
+        self.assertEqual(saved["config"]["params"]["n_top"], 0)
+        self.assertEqual(saved["dataset_directory"], str(self.data.resolve()))
+        json.dumps(saved, allow_nan=False)
+
+    def test_nonfinite_model_outputs_cannot_overwrite_submission(self):
+        config = {"model": "interaction_logistic_regression",
+                  "params": {"gamma": 0.1, "lambda_": 0.001, "max_iters": 10, "n_top": 3}}
+        output = self.root / "existing.csv"
+        output.write_text("existing content", encoding="utf-8")
+        with patch("run.model_from_config") as factory:
+            model = factory.return_value.fit.return_value
+            model.loss_ = 0.5
+            model.predict_proba.return_value = np.full(3, np.nan)
+            with self.assertRaisesRegex(ValueError, "finite"):
+                generate_submission(config, self.data, output)
+        self.assertEqual(output.read_text(), "existing content")
 
     def test_missing_data_has_actionable_error(self):
         result = subprocess.run([sys.executable, str(ROOT / "run.py"), "--data-dir",

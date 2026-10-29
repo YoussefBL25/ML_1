@@ -1,0 +1,72 @@
+{
+  "model": "histogram_boosted_blend",
+  "config_file": "config/boosted_confirmed_candidate.json",
+  "threshold_source": "confirmation tuning portion, split seed 2027",
+  "threshold": 0.19999999999999996,
+  "tree_weight": 0.5,
+  "params": {
+    "n_estimators": 300,
+    "max_depth": 4,
+    "learning_rate": 0.08,
+    "max_bins": 32,
+    "min_samples_leaf": 150,
+    "l2": 10.0,
+    "subsample": 0.7,
+    "feature_fraction": 0.8,
+    "seed": 0
+  },
+  "training_shape": [
+    328135,
+    321
+  ],
+  "test_shape": [
+    109379,
+    321
+  ],
+  "training_loss": 0.2100163887460009,
+  "training_elapsed_s": 1138.9060190689997,
+  "rows": 109379,
+  "positive_predictions": 15694,
+  "negative_predictions": 93685,
+  "changed_predictions_from_previous_submission": 1786,
+  "csv_sha256": "cb6c131eb05b671b8aa3dcb7ea9ce008260bc450c4163a29c6514e64aad84618",
+  "validation_comparisons": {
+    "boosting_screen.json": {
+      "seed": 2026,
+      "baseline": {
+        "f1": 0.4383016364440513,
+        "precision": 0.3825762450135118,
+        "recall": 0.5130284728213977,
+        "accuracy": 0.8838892528989593,
+        "log_loss": 0.21728140220627526
+      },
+      "candidate": {
+        "f1": 0.44534025690079254,
+        "precision": 0.3686234588847416,
+        "recall": 0.562381363244176,
+        "accuracy": 0.8763009127340881,
+        "log_loss": 0.21410685238322527
+      },
+      "test_f1_gain": 0.007038620456741251
+    },
+    "boosting_confirmation.json": {
+      "seed": 2027,
+      "baseline": {
+        "f1": 0.44351002964086306,
+        "precision": 0.36926078971533516,
+        "recall": 0.5551337359792925,
+        "accuracy": 0.87698660612248,
+        "log_loss": 0.21526004899160225
+      },
+      "candidate": {
+        "f1": 0.44670929922728486,
+        "precision": 0.3637843115981339,
+        "recall": 0.578602243313201,
+        "accuracy": 0.873436238133695,
+        "log_loss": 0.2130863992041891
+      },
+      "test_f1_gain": 0.0031992695864218046
+    }
+  },
+  "aicrowd_score": null
+}

@@ -30,9 +30,26 @@ regularization do not help an underfitting linear model).}
 \end{abstract}
 
 \section{Introduction}
-\pending{Task: predict self-reported coronary heart disease (MICHD) from the
-2015 BRFSS telephone survey; binary classification evaluated with F1; only
-NumPy allowed. Contributions and paper outline.}
+Cardiovascular disease is the leading cause of death worldwide, and
+identifying people at risk from cheap, routinely collected information could
+help target prevention. We predict whether a respondent of the 2015
+Behavioral Risk Factor Surveillance System (BRFSS), a US telephone survey on
+health behaviours and conditions, reports coronary heart disease or a
+myocardial infarction (MICHD). This is a binary classification task with a
+strong class imbalance, evaluated with the F1 score, and all models are
+implemented with NumPy only.
+
+Our contributions are the following. (i) A preprocessing pipeline derived
+from the BRFSS codebook~\cite{brfss15}, which decodes special answer codes,
+removes redundant columns and encodes nominal features, without using the
+labels (Section~\ref{sec:data}). (ii) A nested cross-validation protocol in
+which hyperparameters and the decision threshold are selected without ever
+seeing the evaluation fold (Section~\ref{sec:protocol}). (iii) A comparison
+of linear and logistic models, a study of class weighting, and a final
+regularized logistic model with missingness indicators, one-hot features and
+pairwise interactions (Sections~\ref{sec:methods} to~\ref{sec:final}).
+(iv) Ablations showing which of these choices actually improve F1
+(Section~\ref{sec:results}).
 
 % ============================================================================
 % OWNER: Person 1 (data description, step 4). Person 2: steps 1 to 3.
@@ -218,8 +235,26 @@ handles the imbalance.
 % OWNER: Person 3 (conclusion, reproducibility)
 % ============================================================================
 \section{Conclusion}
-\pending{Final model, its nested-CV F1 and AIcrowd score; main lessons;
-limitations.}
+Our final model, regularized logistic regression on codebook-preprocessed
+features extended with missingness indicators, one-hot encodings and the
+interactions of the 40 strongest features, reaches a nested-CV F1 of
+$0.441\pm0.006$ and an F1 of $0.450$ on the AIcrowd test set. Three lessons
+emerge. First, understanding the data matters most: the codebook rules give
+the largest single gain, $+0.016$ in every fold, more than all later feature
+engineering combined. Second, the logistic model underfits rather than
+overfits, so $L_2$ regularization brings no measurable gain. Third, tuning
+the decision threshold is enough to handle the class imbalance; class
+weighting only shifts the optimal threshold, as predicted by the odds
+argument of Section~\ref{sec:imbalance}.
+
+The approach has clear limitations. The labels are self-reported and the
+survey is observational, so the model captures associations, not causes.
+With a precision of about $0.37$, most predicted positives are false alarms,
+which rules out any clinical use. Finally, the small and not fully
+consistent gain of the interactions suggests that the remaining error is
+limited by the information in the survey and by the capacity of linear
+decision boundaries; non-linear models such as gradient-boosted trees, not
+allowed here, would be the natural next step.
 
 \section*{Reproducibility}
 Code: \pending{public GitHub URL and commit}. \texttt{run.py} reproduces the

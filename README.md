@@ -6,14 +6,17 @@ library. The dataset is not included.
 
 ## Current status
 
-The preprocessing, validation, tuning, and submission infrastructure can be
-tested without the medical dataset. The six required methods are implemented.
-Real-data feature rules, experiments, final model selection, and the report's
-findings remain pending.
+The six required methods, BRFSS preprocessing rules, logistic tuning, class
+weighting ablation, and final interaction model are implemented. Saved real-data
+results are in `results/`. `python run.py` defaults to `config/best_model.json`.
+The final model's saved CV F1 is 0.441 +/- 0.006; its reported AIcrowd F1 is 0.450.
+The four linear methods still need separate evaluations with the current
+preprocessing and nested validation. The report still contains placeholders.
 
 `config/model.json` is explicitly a **provisional legacy baseline**: ridge with
 `lambda_=1e-6` and cutoff `0.22`. It has not been selected using the new
-validation protocol or verified against a best AIcrowd submission.
+validation protocol or verified against a best AIcrowd submission. It is kept
+for compatibility and is not the default submission configuration.
 
 ## Setup and checks without the dataset
 
@@ -24,18 +27,20 @@ python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
 python run.py --help
 python tune_models.py --help
+python evaluate_best.py --help
 ```
 
 The tests generate tiny synthetic CSVs in temporary directories. They check
 analytic updates and losses for all six methods, gradients, singular least
 squares, extreme logistic scores, preprocessing statistics and schemas,
-validation isolation, metrics, cache refresh, CSV validation, and repeatable
+validation isolation, metrics, cache refresh, CSV validation, final-model
+configuration checks, saturated float32 probabilities, and repeatable
 tuning-to-submission execution. They do not measure medical-data performance.
 No external testing library is required for this local suite.
 
-Verification completed with Python 3.12 and NumPy 2.3.5: all 30 local synthetic
-tests passed. The official course public tests were also run from a separate
-temporary directory: 26 passed, with the GitHub URL format check and optional
+Run the command above for the current local test count. Earlier verification
+with Python 3.12 and NumPy 2.3.5 also included the official course public tests
+from a separate temporary directory: 26 passed, with the GitHub URL format check and optional
 Black formatting check excluded for local verification. Those tests do not
 establish final submission performance or validate the published repository URL.
 To repeat the course checks using a separate checkout of
@@ -48,8 +53,8 @@ python -m pytest /path/to/ML_course/projects/project1/grading_tests \
   -k 'not github_link_format and not black_format'
 ```
 
-Run the URL check with the final public commit URL before submitting. The LaTeX
-draft has not been compiled in this environment because LaTeX is not installed.
+Run the URL check with the final public commit URL before submitting. A compiled
+draft exists at `report/main.pdf`; it still contains unfinished sections.
 
 ## Dataset loading
 
@@ -137,10 +142,12 @@ MSE includes the required factor `1/2`; regularizers use `lambda_ * ||w||^2`,
 including the bias. Least squares uses normal equations with a pseudoinverse
 fallback for singular systems. Logistic loss uses stable `logaddexp` evaluation.
 
-Model JSON files contain `model`, `params`, `seed`, `threshold`, `preprocessing`,
-and an optional `status` label. Unknown keys, invalid parameters, and nonfinite
-model outputs are rejected. Retain the exact selected JSON, code commit,
-Python/NumPy versions, input files, and uploaded CSV for each final experiment.
+Model JSON files contain `model`, `params`, `threshold`, `preprocessing`, and
+optional `seed` and `status` fields. Baseline configs use `models.validate_config`;
+the final model adds `n_top` and uses `interactions.validate_best_config`.
+Unknown keys, invalid parameters, and nonfinite model outputs are rejected.
+The interaction model requires a leading bias column. Retain the selected JSON,
+code commit, Python/NumPy versions, input files, and uploaded CSV for each final experiment.
 Dependency ranges alone do not guarantee identical numerical results across
 different environments.
 
@@ -201,6 +208,29 @@ combination and how many outer folds selected it, runtime versions, and elapsed 
 `results/selected_model.json` (the configuration accepted by `run.py`). Override
 them with `--output` and `--model-output` to keep each experiment separately.
 
+### Linear baseline comparisons still to run
+
+`--methods linear` selects among all four algorithms; it does not produce four
+independent baseline estimates. To fill a comparison table, evaluate each method
+separately on the same BRFSS preprocessing and folds. For example, in Bash:
+
+```bash
+for m in mean_squared_error_gd mean_squared_error_sgd least_squares ridge_regression; do
+  python tune_models.py --methods "$m" --preprocessing config/preprocessing_brfss.json \
+    --output "results/tuning_${m}_nested.json" --model-output "results/selected_${m}_nested.json"
+done
+```
+
+In PowerShell:
+
+```powershell
+foreach ($m in 'mean_squared_error_gd', 'mean_squared_error_sgd', 'least_squares', 'ridge_regression') {
+  python tune_models.py --methods $m --preprocessing config/preprocessing_brfss.json --output "results/tuning_${m}_nested.json" --model-output "results/selected_${m}_nested.json"
+}
+```
+
+Use each output's `outer_metrics`, not the historical `tuning_linear.json` scores.
+
 ### Logistic experiments (report Tables I-II, Fig. 1)
 
 Each method is tuned separately with the same folds, once with the BRFSS
@@ -245,13 +275,87 @@ python evaluate_best.py  # 5-fold CV, threshold tuned on 3 inner folds (~15 min)
 python evaluate_best.py --n-top 0 --output results/best_model_no_interactions_cv.json
 ```
 
-`evaluate_best.py` uses the same outer folds as `tune_models.py` and reports
-F1, precision, recall and accuracy per fold in `results/best_model_cv.json`
-(F1 0.441 +/- 0.006). The threshold 0.21 is the one selected by the same
-3-fold procedure on the full training set. The submission scored F1 0.450 and
-accuracy 0.878 on AIcrowd.
+`evaluate_best.py` uses the same default outer folds as `tune_models.py`, but
+evaluates a **fixed model configuration**, selecting only the threshold on three
+inner folds. It does not repeat the search over `n_top`, learning rate, penalty,
+or the configured categorical column list. Preprocessing statistics, category
+levels, interaction rankings, and interaction scaling are fitted separately on
+each training partition. The categorical column list in `best_model.json` was
+generated from all training features; this evaluation does not measure that
+schema-selection step. Changing `--n-top` runs another fixed configuration.
+
+The saved `results/best_model_cv.json` has F1 0.441 +/- 0.006. Its training and
+validation loss entries are `NaN` and must be regenerated with the current code;
+they are not usable loss measurements. New evaluation output rejects nonfinite
+metrics and records the protocol (`selection_scope: threshold_only`), folds,
+threshold grid, dataset directory, and Python/NumPy versions. Use `--output` to
+keep a rerun separately:
+
+```bash
+python evaluate_best.py --data-dir /path/to/dataset --output results/best_model_cv_rerun.json
+```
+
+The CLI also supports `--config`, `--folds`, `--inner-folds`, `--seed`, and
+`--no-cache`. The configured submission threshold 0.21 was reported as selected
+by 3-fold CV on the full training set. The recorded AIcrowd scores are F1 0.450
+and accuracy 0.878; the repository does not include the uploaded CSV for an
+independent comparison.
 
 ## Generating submissions
+
+### NumPy boosted-tree candidate
+
+`boosting.py` implements histogram gradient boosting without external ML
+libraries: logistic-loss gradients/Hessians, regularized Newton leaf values,
+shallow trees, row/feature sampling, and training-only quantile bins. Bin zero
+represents missing values; each split learns whether missing rows go left or
+right. The codebook cleaning rules and dropped columns are reused, nominal
+features are one-hot encoded using training levels, and numeric values are
+binned directly without median imputation or scaling. The six required course
+functions remain separate.
+
+`tune_boosting.py` compares depth 3/4 trees, 100/200/300 tree checkpoints, and
+pure trees versus 50/50 probability blends with the interaction logistic model.
+It uses a stratified 60/20/20 split (seed 2026): fitting, parameter/threshold
+selection, and independent test scoring. These are exploratory holdout scores,
+not the five-fold nested estimates reported for earlier experiments. Repeated
+experiments on the same test portion require confirmation on another split.
+
+```bash
+python tune_boosting.py --data-dir data/dataset
+python run.py --data-dir data/dataset --config config/boosted_candidate.json --output submission_boosted.csv
+```
+
+The screen writes `results/boosting_screen.json` and the best new configuration
+selected by tuning to `config/boosted_candidate.json`. A candidate is saved even
+if the baseline wins: check `tuning_prefers_new_model` and `test_f1_gain` before
+using it. This does not replace `config/best_model.json` or the default model.
+The tree seed is stored in `params.seed`; `tree_weight=1` uses pure boosted
+trees, and `tree_weight=0.5` averages tree and logistic probabilities. The nested
+`logistic_config` records the exact logistic pipeline needed for reproduction.
+
+The selected 300-tree, depth-4, 50/50 blend improved held-out F1 in two splits:
+
+| Split seed | Interaction logistic F1 | Boosted blend F1 |
+| --- | --- | --- |
+| 2026 (screening) | 0.43830 | 0.44534 |
+| 2027 (fixed-parameter confirmation) | 0.44351 | 0.44671 |
+
+Accuracy decreased from 0.88389 to 0.87630 on the first split and from 0.87699
+to 0.87344 on the second; this candidate prioritizes F1 and recall. Confirmation
+keeps the screened model parameters and blend weight fixed, tuning only the
+threshold on its new tuning portion:
+
+```bash
+python tune_boosting.py --data-dir data/dataset --candidate-config config/boosted_candidate.json --seed 2027 --output results/boosting_confirmation.json --model-output config/boosted_confirmed_candidate.json
+python run.py --data-dir data/dataset --config config/boosted_confirmed_candidate.json --output submission_boosted.csv
+```
+
+These are holdout comparisons with overlapping datasets, not independent
+datasets or a nested-CV estimate of the entire model search. The new candidate's
+AIcrowd score still requires uploading its generated CSV.
+
+### Current best submission
 
 ```bash
 # Reproduces the best AIcrowd submission (about 1.5 min).
@@ -267,9 +371,10 @@ Length mismatches, duplicate/noninteger Ids, and invalid labels are rejected
 before opening the output file. Repeated runs with identical data, configuration,
 and environment are covered by synthetic tests.
 
-`python run.py` reads `config/best_model.json` by default and reproduces the
-CSV of the best AIcrowd submission exactly. No AIcrowd submission is performed
-by these scripts.
+`python run.py` reads `config/best_model.json` by default to regenerate the
+configured best submission. Verify exact reproduction by comparing the generated
+CSV with the original uploaded CSV in the same numerical environment. No AIcrowd
+submission is performed by these scripts.
 
 ## Historical results
 
@@ -286,22 +391,24 @@ to preserve this historical record.
 scientific report. With a LaTeX installation, build it using:
 
 ```bash
-pdflatex -interaction=nonstopmode -halt-on-error -output-directory report report/main.tex
+cd report
+latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
 ```
 
 Keep the completed report within two pages, without an appendix; references may
 occupy a third page. Report sources and the final `report/main.pdf` are allowed
 in Git; auxiliary build files are ignored.
 
-Remaining work requiring data or measured findings:
+The logistic evaluation with finite losses is saved in
+`results/best_model_cv_rerun.json`; older outputs remain as historical results.
 
-- Inspect the actual feature schema and distributions; verify per-column survey
-  codes and categorical/ordinal/continuous treatments.
-- Run the real-data tests, model grids, feature experiments, and ablations;
-  measure results, runtime, and errors, and finalize the configuration.
-- Generate and upload predictions to AIcrowd; verify exact best-CSV reproduction.
-- Fill in report authors, methods/settings, measured results, conclusions,
-  references, and the public repository URL; compile and inspect the final PDF.
+Remaining work:
+
+- Run the four linear baselines separately using the commands above.
+- Verify EDA measurements and retain evidence for reported feature experiments.
+- Compare regenerated predictions with the original best AIcrowd CSV.
+- Complete the report placeholders and public repository URL, accurately describe
+  each evaluation protocol, and check the final PDF's page count.
 - Submit the report with a public repository link pinned to the final commit.
 
 ## Files
@@ -313,13 +420,14 @@ Remaining work requiring data or measured findings:
 | `preprocess.py` | Training-only fit/transform preparation and label conversion. |
 | `metrics.py`, `threshold.py` | F1, precision, recall, accuracy; F1-optimal cutoff search. |
 | `cross_validation.py`, `tuning.py` | Stratified splits, fold preprocessing, nested evaluation and selection. |
-| `models.py`, `config/` | Shared model adapters, provisional config, and experiment examples. |
+| `models.py`, `config/` | Baseline adapters, final model config, legacy baseline, and experiment examples. |
 | `tune_models.py`, `tune_linear.py` | Nested experiment command-line entry points. |
 | `make_preprocessing_config.py` | BRFSS codebook rules -> `config/preprocessing_brfss.json`. |
 | `imbalance.py` | Class-weighted logistic regression ablation. |
 | `plots.py` | Report figures from `results/` (no training). |
 | `interactions.py` | Final model: richer preprocessing and pairwise interactions; writes `config/best_model.json`. |
-| `evaluate_best.py` | 5-fold CV of the final model, with and without interactions. |
+| `boosting.py`, `tune_boosting.py` | NumPy histogram boosted trees, optional logistic blending, and holdout screening. |
+| `evaluate_best.py` | CV of a fixed final-model configuration, with inner threshold selection. |
 | `run.py` | Full-data training and submission generation; defaults to the final model. |
 | `tests/` | Synthetic algorithm, isolation, I/O, and end-to-end checks. |
 | `report/main.tex` | LaTeX report (IEEE template of the course); figures in `report/figures/`. |
