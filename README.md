@@ -213,6 +213,11 @@ for m in logistic_regression reg_logistic_regression; do
   python tune_models.py --methods $m --preprocessing config/preprocessing.json \
     --output results/tuning_${m}_default.json --model-output /tmp/selected_${m}_default.json
 done
+# Linear rows of Table I, same folds and preprocessing
+for m in mean_squared_error_gd mean_squared_error_sgd least_squares ridge_regression; do
+  python tune_models.py --methods $m --preprocessing config/preprocessing_brfss.json \
+    --output results/tuning_$m.json --model-output results/selected_$m.json
+done
 python imbalance.py   # results/imbalance.json
 python plots.py       # report/figures/tuning.pdf
 ```

@@ -25,9 +25,15 @@
 % OWNER: Person 3 (abstract, introduction)
 % ============================================================================
 \begin{abstract}
-\pending{Abstract: task, data, methods, nested-CV F1 of the final model, main
-finding (codebook preprocessing matters most; class weighting and
-regularization do not help an underfitting linear model).}
+We predict coronary heart disease from 328,135 answers to the 2015 BRFSS
+survey, 8.8\% of them positive, and compare four least-squares models with
+plain and regularized logistic regression by nested cross-validation of F1.
+Logistic regression beats the linear models in every fold, $0.432$ against
+at most $0.420$. Our final model, regularized logistic regression with
+pairwise interactions of the 40 most important features, reaches
+$0.441\pm0.006$, and $0.454$ on AIcrowd. Preprocessing with the BRFSS
+codebook gives the largest gain, whereas regularization and class weighting
+do not help a model that underfits.
 \end{abstract}
 
 \section{Introduction}
@@ -84,7 +90,7 @@ are informative because many questions are asked only after a given answer:
 the age at diabetes diagnosis is missing for respondents without diabetes.
 \pending{Person 1: own improvement, if any.}
 
-\section{Methods}
+\section{Methods}\label{sec:methods}
 
 % ============================================================================
 % OWNER: Person 2 (evaluation protocol)
@@ -104,14 +110,20 @@ submitted model results from the same selection on the full training set.
 % OWNER: Person 3 (linear methods)
 % ============================================================================
 \subsection{Linear models}
-\pending{MSE gradient descent, SGD (batch size 1), least squares, ridge:
-losses, grids, iterations, seed; continuous scores thresholded like
-probabilities.}
+The linear models regress $y_i\in\{0,1\}$ on the features with the mean
+squared error $L(w)=\frac1{2N}\|y-Xw\|^2$, and threshold the score
+$x_i^\top w$ like a probability. Least squares solves the normal equations;
+ridge regression minimizes $L(w)+\lambda\|w\|^2$,
+$\lambda\in\{10^{-6},\dots,10^{-1}\}$. From $w=0$, gradient descent (GD)
+takes 200 full-batch steps, $\gamma\in\{1,3,10,30,60,90\}\cdot10^{-3}$, and
+SGD 200{,}000 single-sample steps, about one epoch, with seed 0 and
+$\gamma\in\{1,3\}\cdot10^{-6},\dots,\{1,3\}\cdot10^{-4}$. The threshold grid
+is the one of the logistic models.
 
 % ============================================================================
 % OWNER: Person 2 (logistic models, imbalance, final model)
 % ============================================================================
-\subsection{Logistic models}\label{sec:methods}
+\subsection{Logistic models}
 Logistic regression models the probability of disease as
 $\sigma(x_i^\top w)$, with $y_i\in\{0,1\}$, and minimizes the mean negative
 log-likelihood
@@ -142,8 +154,14 @@ every outer fold selects $\gamma\in\{0.3,1\}$ and $\lambda\le10^{-3}$. Nor
 does it come from regularization: plain and regularized logistic regression
 are tied, $\Delta=0.0003\pm0.0014$, as training and validation losses of
 $0.219$ and $0.221$ show no overfitting.
-\pending{Person 3: linear vs.\ logistic comparison once
-Table~\ref{tab:methods} is complete.}
+The linear models are weaker: least squares and ridge reach F1 $0.420$,
+and regularized logistic regression beats least squares in all five folds,
+$\Delta=0.011\pm0.002$, mostly through precision, $0.358$ against $0.346$.
+The squared loss also penalizes correct predictions beyond 0 or 1, so
+well-classified respondents distort the fit, which the log-likelihood
+avoids. As for logistic regression, $\lambda\le10^{-3}$ changes F1 by less
+than $0.001$. GD, with $\gamma=0.09$ in every fold, comes within $0.002$ of
+least squares; SGD, limited to one epoch, loses $0.005$.
 
 % Floats are placed after the paragraphs that discuss them, so that they
 % appear next to that text.
@@ -163,10 +181,10 @@ convergence and is flat for $\lambda\le10^{-3}$.}
 \toprule
 Method & F1 & Prec. & Rec. & Acc. & Thr. \\
 \midrule
-GD (MSE) & \pending{} & & & & \\
-SGD (MSE) & \pending{} & & & & \\
-Least squares & \pending{} & & & & \\
-Ridge & \pending{} & & & & \\
+GD (MSE) & 0.419 $\pm$ 0.005 & 0.344 & 0.536 & 0.869 & 0.22 \\
+SGD (MSE) & 0.415 $\pm$ 0.005 & 0.337 & 0.544 & 0.865 & 0.20 \\
+Least squares & 0.420 $\pm$ 0.005 & 0.346 & 0.537 & 0.869 & 0.22 \\
+Ridge & 0.420 $\pm$ 0.004 & 0.343 & 0.542 & 0.868 & 0.22 \\
 Logistic & 0.431 $\pm$ 0.005 & 0.359 & 0.540 & 0.874 & 0.20 \\
 Reg.\ logistic & 0.432 $\pm$ 0.005 & 0.358 & 0.543 & 0.874 & 0.20 \\
 \textbf{Final model} & \textbf{0.441 $\pm$ 0.006} & 0.369 & 0.549 & 0.877 & 0.21 \\
