@@ -234,7 +234,8 @@ The submitted model is regularized logistic regression with
 
 1. Preprocessing: the BRFSS codebook rules above, plus a missing-value
    indicator for every feature with missing values, and one-hot encoding of
-   every feature with 3 to 10 observed values (86 categorical features).
+   the 79 other features with 3 to 10 observed values, in addition to the 7
+   nominal ones (86 categorical features in total).
 2. Interactions: a first fit ranks the features by |weight|; the pairwise
    products of the 40 top features (780 products) are standardized and added,
    and the model is refit. The ranking uses training rows only.
@@ -242,7 +243,11 @@ The submitted model is regularized logistic regression with
 ```bash
 python interactions.py   # writes config/best_model.json from the training features
 python evaluate_best.py  # 5-fold CV, threshold tuned on 3 inner folds (~15 min)
+# Ablation rows of the report (Table II), one change removed at a time
 python evaluate_best.py --n-top 0 --output results/best_model_no_interactions_cv.json
+python evaluate_best.py --n-top 0 --no-indicators --output results/ablation_one_hot_cv.json
+python evaluate_best.py --n-top 0 --no-indicators --no-one-hot \
+  --output results/ablation_codebook_no_one_hot_cv.json
 ```
 
 `evaluate_best.py` uses the same outer folds as `tune_models.py` and reports

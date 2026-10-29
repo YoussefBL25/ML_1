@@ -9,12 +9,13 @@
 % sections and replace every \pending{...} with measured values. Limit: 2 pages
 % (references may use a third page), no appendix.
 \newcommand{\pending}[1]{\textbf{[#1]}}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
 
 \begin{document}
 \title{Predicting Coronary Heart Disease from BRFSS Survey Data\\with Linear and Logistic Models}
 
 \author{
-  Hassen Ben Chaaben, Meriem Laataoui, Youssef Ben Lassoued\\
+  Hassen Ben Chaabane, Meriem Laataoui, Youssef Ben Lassoued\\
   \textit{Machine Learning (CS-433), EPFL, Switzerland}
 }
 
@@ -30,12 +31,19 @@ regularization do not help an underfitting linear model).}
 \end{abstract}
 
 \section{Introduction}
-\pending{Task: predict self-reported coronary heart disease (MICHD) from the
-2015 BRFSS telephone survey; binary classification evaluated with F1; only
-NumPy allowed. Contributions and paper outline.}
+Cardiovascular disease is the leading cause of death worldwide. We predict
+self-reported coronary heart disease or myocardial infarction (MICHD) from the
+2015 BRFSS telephone survey, a binary task with strong class imbalance, scored
+with F1 and solved with NumPy only. We contribute (a) a label-free
+preprocessing built from the BRFSS codebook (Section~\ref{sec:data}); (b) a
+nested cross-validation protocol in which the threshold is also chosen without
+seeing the test fold (Section~\ref{sec:protocol}); (c) a comparison of linear
+and logistic models and of class weighting, and a final model with
+interactions (Sections~\ref{sec:methods}--\ref{sec:final}); and (d) ablations
+showing which choices actually improve F1 (Section~\ref{sec:results}).
 
 % ============================================================================
-% OWNER: Person 1 (data description, step 4). Person 2: steps 1 to 3.
+% OWNER: Person 1 (data description, imputation and scaling). Person 2: codebook rules, final-model features.
 % ============================================================================
 \section{Data and preprocessing}\label{sec:data}
 \pending{Person 1, data description: training and test sizes, class
@@ -44,34 +52,38 @@ balance, missing values, feature types. Numbers from the shared EDA:
 44.8\% of all values missing, 147 features missing for more than half of the
 respondents, mostly from optional state modules. Optional: EDA figure.}
 
-The features are coded survey answers. Steps 1 to 3 convert them into
-meaningful values, following the BRFSS 2015 codebook~\cite{brfss15}, which
-we checked for every feature; they do not use the labels.
-\begin{enumerate}
-\item \emph{Special codes.} The codes for ``don't know'' and ``refused'',
-  such as 7 and 9, become missing values, and the codes for ``none'', 88,
-  888 or 555, become 0. For example, $62\%$ of the respondents report 88 =
-  ``no days'' of poor physical health, otherwise read as 88 days.
-\item \emph{Column removal.} We remove $64$ features: $32$ describe the
-  survey, such as identifiers and weights, $29$ are raw answers that also
-  exist in a cleaned version, such as WEIGHT2 replaced by WTKG3, and $3$ are
-  nominal. Two of these give the type of physical activity, with 77
-  categories, already summarized by the calculated energy cost, intensity
-  and weekly minutes of activity; the third is $99.9\%$ missing.
-\item \emph{Nominal features.} Seven features use numbers as category
-  labels, such as state and marital status, and are one-hot encoded.
-\item \emph{Imputation and scaling.} \pending{Person 1: median imputation,
-  standardization, bias column; all statistics learned on training rows
-  only.}
-\end{enumerate}
-\pending{Person 1: own improvement, if any.}
+The features are coded survey answers, so we first convert them into
+meaningful values with rules from the BRFSS 2015 codebook~\cite{brfss15},
+checked for every feature (Table~\ref{tab:codebook}). The rules depend only
+on the feature values, never on the labels.
 
-\textit{Features of the final model.} Each feature with missing values gets
-an indicator equal to 1 when the value is missing. Missingness is
-informative, because many questions are only asked after a given answer:
-the age at diabetes diagnosis is missing for respondents without diabetes.
-All 86 features with 3 to 10 observed values are also one-hot encoded, so
-that each level of, for instance, general health has its own effect.
+\begin{table}[b]
+\centering\footnotesize
+\begin{tabular}{@{}p{0.47\columnwidth}p{0.47\columnwidth}@{}}
+\toprule
+Rule & Example \\
+\midrule
+Don't know, refused $\to$ missing & codes 7 and 9 \\
+None $\to 0$ & codes 88, 888, 555; 62\% answer 88 = ``no days'' of poor physical health \\
+Drop 32 survey features & identifiers, weights \\
+Drop 29 raw answers & WEIGHT2, cleaned in WTKG3 \\
+Drop 3 nominal features & activity types, kept in computed minutes; one 99.9\% missing \\
+\bottomrule
+\end{tabular}
+\caption{Codebook rules, applied before any learning.}
+\label{tab:codebook}
+\end{table}
+\pending{Person 1, one or two sentences: median imputation, standardization,
+bias column; all statistics learned on training rows only. Applied alone,
+this is the generic baseline of Table~\ref{tab:ablation}.}
+
+The final model adds two kinds of binary features: a one-hot encoding of
+the nominal features and of every feature with 3 to 10 values, and, for each
+feature with missing values, an indicator of missingness. The indicators are
+informative because many questions are only asked after a given answer: the
+age at diabetes diagnosis, for instance, is missing for respondents without
+diabetes.
+\pending{Person 1: own improvement, if any.}
 
 \section{Methods}
 
@@ -79,23 +91,18 @@ that each level of, for instance, general health has its own effect.
 % OWNER: Person 2 (evaluation protocol)
 % ============================================================================
 \subsection{Evaluation protocol}\label{sec:protocol}
-We use nested cross-validation, so that the data used to choose a model is
-never used to evaluate it. All methods share five stratified folds, with
-seed 0.
-\begin{enumerate}
-\item \emph{Outer loop.} Each fold is the test fold once; the other four
-  form the training set.
-\item \emph{Inner loop.} Three folds of the training set select the
-  hyperparameters and the threshold $t\in\{0.05,0.06,\dots,0.95\}$ with the
-  best F1.
-\item \emph{Evaluation.} The selected model is retrained on the training
-  set and scored on the test fold.
-\end{enumerate}
-We report the mean and standard deviation of F1 over the test folds. A
-per-fold difference $\Delta$ between two configurations is considered real
-only if it has the same sign in all five folds. All statistics are learned
-on training data, and the submitted model is selected by the inner loop on
-the full training set.
+Models are evaluated by nested cross-validation, so that selection and
+evaluation use disjoint data. The training set is split into five
+stratified folds, shared by all experiments. Each fold serves once as the
+test fold; on the four others, the preprocessing statistics are estimated
+and an inner 3-fold cross-validation selects the hyperparameters and the
+threshold $t$ that maximize F1, after which the selected model is retrained
+on them and evaluated on the test fold. We report the mean and standard
+deviation of F1 over the test folds. Two configurations are compared by
+their per-fold F1 difference $\Delta$, which removes the variation due to
+the split, and one is considered better only if $\Delta>0$ in all five
+folds. The submitted model results from the same selection on the full
+training set.
 
 % ============================================================================
 % OWNER: Person 3 (linear methods)
@@ -109,48 +116,54 @@ probabilities.}
 % OWNER: Person 2 (logistic models, imbalance, final model)
 % ============================================================================
 \subsection{Logistic models}\label{sec:methods}
-With labels $y\in\{0,1\}$, logistic regression minimizes the mean negative
+Logistic regression models the probability of disease as
+$\sigma(x_i^\top w)$, with $y_i\in\{0,1\}$, and minimizes the mean negative
 log-likelihood
-$L(w)=\frac1N\sum_i\bigl[\log(1+e^{x_i^\top w})-y_i x_i^\top w\bigr]$,
-computed with \texttt{logaddexp} for numerical stability; regularized
-logistic regression adds $\lambda\|w\|^2$. Both use full-batch gradient
-descent from $w=0$ for 300 iterations, after which the loss changes by less
-than $0.06\%$. We search $\gamma\in\{0.01,0.03,0.1,0.3,1\}$, around the
-convergence bound $\gamma<0.57$ given by the largest eigenvalue of
-$X^\top X/N$, and $\lambda\in\{10^{-6},\dots,10^{-1}\}$.
-
-\subsection{Class imbalance}\label{sec:imbalance}
-Only $8.8\%$ of the samples are positive. Besides threshold tuning, we
-weight the positive samples by $\omega\in\{1,\sqrt r,r\}$, where
-$r=n_-/n_+\approx10.3$. For a well-specified model, this multiplies the
-predicted odds by $\omega$, so a threshold $t$ becomes $t'$ with
-$t'/(1-t')=\omega\,t/(1-t)$, and weighting should add little to threshold
-tuning.
+$L(w)=\frac1N\sum_i\bigl[\log(1+e^{x_i^\top w})-y_i x_i^\top w\bigr]$; its
+regularized version minimizes $L(w)+\lambda\|w\|^2$. Both use full-batch
+gradient descent with step size $\gamma$ from $w=0$ for 300 iterations,
+after which the loss changes by less than $0.06\%$. The inner
+cross-validation selects $\gamma\in\{0.01,0.03,0.1,0.3,1\}$,
+$\lambda\in\{10^{-6},\dots,10^{-1}\}$ and $t\in\{0.05,0.06,\dots,0.95\}$.
 
 \subsection{Final model}\label{sec:final}
-A linear model cannot represent the joint effect of two features, for
-instance that smoking matters more for older respondents. The final model,
-regularized logistic regression with $\gamma=0.3$ and $\lambda=10^{-4}$, is
-therefore fitted twice: a first fit ranks the features by $|w_j|$, then the
-780 products of the 40 top features are standardized and added, and the
-model is refit. The number 40 was chosen among $\{20,30,\dots,80\}$ by
-3-fold cross-validation.
+A linear model cannot capture joint effects, such as smoking being more
+dangerous for older respondents. The final model therefore adds the
+products of the $K$ most important features. Regularized logistic
+regression, which has the highest F1 (Table~\ref{tab:methods}), is first
+fitted to rank the standardized features by $|w_j|$, then refitted with the
+$K(K-1)/2$ standardized products of the top $K$. $K\in\{20,30,\dots,80\}$
+is chosen by 3-fold cross-validation, and $\gamma$, $\lambda$ and $t$ as
+before.
 
 % ============================================================================
 % OWNER: Person 2 (results). Person 3: fill the four linear rows of tab:methods.
 % ============================================================================
 \section{Results}\label{sec:results}
+The final model is the best method (Table~\ref{tab:methods}), with F1
+$=0.441\pm0.006$ in nested cross-validation and $0.454$ on AIcrowd. Its
+gain does not come from the hyperparameters: the inner selection gives
+$\gamma=0.3$, $\lambda=10^{-4}$ and, for the final model, $K=40$, but F1 is
+flat around these values (Fig.~\ref{fig:tuning}) and every outer fold
+selects $\gamma\in\{0.3,1\}$ and $\lambda\le10^{-3}$. Nor does it come from
+regularization: plain and regularized logistic regression are tied,
+$\Delta=0.0003\pm0.0014$, since with training and validation losses of
+$0.219$ and $0.221$ the model does not overfit.
+\pending{Person 3: linear vs.\ logistic comparison once
+Table~\ref{tab:methods} is complete.}
 
-\begin{figure}[t]
+% Floats are placed after the paragraphs that discuss them, so that they
+% appear next to that text.
+\begin{figure}[!h]
 \centering
-\includegraphics[width=0.68\columnwidth]{figures/tuning.pdf}
-\caption{Inner-CV F1 on the full training set; $\lambda=0$ is plain logistic
-regression. The best cells differ by less than $0.0004$, below the fold
-standard deviation. Orange: selected. Grey: not converged.}
+\includegraphics[width=\columnwidth]{figures/tuning.pdf}
+\caption{Inner-CV F1 on the full training set; $\lambda=0$: plain
+logistic regression. F1 rises with $\gamma$ until gradient descent converges
+and does not depend on $\lambda\le10^{-3}$. Orange: selected.}
 \label{fig:tuning}
 \end{figure}
 
-\begin{table}[t]
+\begin{table}[!h]
 \centering\small
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{lccccc}
@@ -166,68 +179,67 @@ Reg.\ logistic & 0.432 $\pm$ 0.005 & 0.358 & 0.543 & 0.874 & 0.20 \\
 \textbf{Final model} & \textbf{0.441 $\pm$ 0.006} & 0.369 & 0.549 & 0.877 & 0.21 \\
 \bottomrule
 \end{tabular}
-\caption{Nested CV results, mean over the 5 outer folds. Thr.: mean selected
-threshold.}
+\caption{Nested cross-validation, mean over the 5 test folds. Thr.: mean
+selected threshold. All rows but the last one-hot encode the nominal
+features only. Always predicting ``no disease'' gives accuracy $0.912$ but
+F1 $=0$.}
 \label{tab:methods}
 \end{table}
 
-\begin{table}[t]
+\begin{table}[!h]
 \centering\small
 \begin{tabular}{lcc}
 \toprule
 Configuration & F1 & $\Delta$ \\
 \midrule
-Generic baseline, step 4 only & 0.416 $\pm$ 0.005 & \\
-+ codebook rules, steps 1--3 & 0.432 $\pm$ 0.005 & $+0.016\pm0.002$ \\
-+ indicators, one-hot & 0.438 $\pm$ 0.004 & $+0.006\pm0.002$ \\
+Generic baseline & 0.416 $\pm$ 0.005 & \\
++ codebook rules & 0.429 $\pm$ 0.003 & $+0.013\pm0.004$ \\
++ one-hot encoding & 0.433 $\pm$ 0.005 & $+0.004\pm0.003$ \\
++ missing indicators & 0.438 $\pm$ 0.004 & $+0.005\pm0.002$ \\
 + 40-feature interactions & 0.441 $\pm$ 0.006 & $+0.003\pm0.002$ \\
-\midrule
-Class weight $\omega=\sqrt r$ & 0.431 $\pm$ 0.005 & \\
-Class weight $\omega=r$ & 0.430 $\pm$ 0.005 & \\
 \bottomrule
 \end{tabular}
-\caption{Ablations with regularized logistic regression on the same folds.
-$\Delta$: per-fold gain over the row above. The weights apply to the
-codebook model, which is $\omega=1$.}
+\caption{From the baseline to the final model, one change per row.
+$\Delta$: per-fold gain over the row above. After the baseline,
+$\gamma=0.3$ and $\lambda=10^{-4}$.}
 \label{tab:ablation}
 \end{table}
 
-\textit{Logistic models.} Plain and regularized logistic regression are
-tied, with $\Delta=0.0003\pm0.0014$. Regularization does not help because
-the model does not overfit: the training and validation losses are $0.219$
-and $0.221$. Accuracy is not informative, since always predicting ``no
-disease'' gives $0.912$.
-\pending{Person 3: linear vs.\ logistic comparison once
-Table~\ref{tab:methods} is complete.}
+The gain therefore comes from the features, which Table~\ref{tab:ablation}
+adds one at a time. The codebook rules contribute most, through precision,
+which rises from $0.337$ to $0.361$. One-hot encoding and missing indicators
+then add $0.004$ and $0.005$ in all folds, and the interactions $0.003$ in
+four folds only, a likely but not certain gain. Other additions, such as
+squared or binned features, more interactions or model averaging, changed
+F1 by less than $0.001$.
 
-\textit{Features.} The codebook rules give the largest gain
-(Table~\ref{tab:ablation}), entirely through precision, which rises from
-$0.338$ to $0.359$. The indicators and one-hot features add $0.006$ in
-every fold. The interactions add $0.003$, but in four folds out of five, so
-this gain is likely but not certain. On the AIcrowd test set, the final
-model reaches F1 $=0.450$ and accuracy $0.878$. Squared, binned or
-log-transformed features, more interactions, a larger penalty and model
-averaging changed F1 by less than $0.001$.
-
-\textit{Class weighting.} It changes F1 by at most $0.0013$ but moves the
-threshold from $0.21$ to $0.48$ and $0.75$, close to the values $0.46$ and
-$0.73$ predicted in Section~\ref{sec:imbalance}: threshold tuning already
-handles the imbalance.
+Finally, the class imbalance needs no correction beyond the threshold.
+Multiplying the loss of the positive samples by $3.2$ or $10.3$, the ratio
+of negatives to positives, barely changes F1, $0.431$ and $0.430$ against
+$0.432$, but raises the selected threshold from $0.21$ to $0.48$ and $0.75$.
+Weighting raises all predicted probabilities while keeping their order, so
+a higher threshold gives back the same predictions: as the odds are
+multiplied by about $\omega$, $0.21$ becomes $0.73$ for $\omega=10.3$.
 
 % ============================================================================
 % OWNER: Person 3 (conclusion, reproducibility)
 % ============================================================================
 \section{Conclusion}
-\pending{Final model, its nested-CV F1 and AIcrowd score; main lessons;
-limitations.}
+The final model, regularized logistic regression with interactions, reaches
+a nested-CV F1 of $0.441\pm0.006$ and $0.454$ on AIcrowd. The codebook rules
+give the largest gain, the model does not overfit, so regularization does
+not help, and threshold tuning already handles the imbalance. The labels are
+self-reported and the survey is observational, so the model captures
+associations, not causes, and with a precision of $0.37$ most predicted
+positives are false alarms. The small, uncertain gain of the interactions
+suggests that linear models are close to their limit on these features.
 
 \section*{Reproducibility}
 Code: \pending{public GitHub URL and commit}. \texttt{run.py} reproduces the
-submitted predictions; \texttt{tune\_models.py} defines the tuning grids and
-runs the nested CV (Table~\ref{tab:methods} and the preprocessing rows of
-Table~\ref{tab:ablation}), \texttt{imbalance.py} the weighting rows, and
-\texttt{plots.py} draws Fig.~\ref{fig:tuning} from the outputs in
-\texttt{results/}.
+submitted predictions. \texttt{tune\_models.py}, \texttt{evaluate\_best.py}
+and \texttt{imbalance.py} produce Tables~\ref{tab:methods}
+and~\ref{tab:ablation}, and \texttt{plots.py} draws Fig.~\ref{fig:tuning};
+the README lists all commands.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}

@@ -1,8 +1,10 @@
 """5-fold CV of the final model, with the threshold tuned on inner folds.
 
 Uses the same stratified folds (seed 0) as tune_models.py, so the per-fold
-F1 can be compared with the earlier models. --n-top 0 evaluates the same
-preprocessing without interactions. Writes results/best_model_cv.json.
+F1 can be compared with the earlier models. The options remove one part of
+the final model at a time, for the ablation of the report: --n-top 0 drops
+the interactions, --no-indicators the missing-value indicators, and
+--no-one-hot the one-hot encoding. Writes results/best_model_cv.json.
 """
 
 import argparse
@@ -39,11 +41,17 @@ def inner_threshold(config, y, X, k=3, seed=0):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--n-top", type=int, help="override the number of top features")
+    parser.add_argument("--no-indicators", action="store_true")
+    parser.add_argument("--no-one-hot", action="store_true")
     parser.add_argument("--output", type=Path, default=ROOT / "results" / "best_model_cv.json")
     args = parser.parse_args(argv)
     config = load_best_config()
     if args.n_top is not None:
         config["params"]["n_top"] = args.n_top
+    if args.no_indicators:
+        config["preprocessing"]["add_missing_indicators"] = False
+    if args.no_one_hot:
+        config["preprocessing"]["categorical_columns"] = []
     x_train, _, y_train, _, _ = load_data()
     y = binary_labels(y_train)
     rows, start = [], time.time()
