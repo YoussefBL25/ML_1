@@ -12,7 +12,7 @@
 \setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
 
 \begin{document}
-\title{Predicting Coronary Heart Disease from BRFSS Survey Data\\with Linear and Logistic Models}
+\title{Predicting Coronary Heart Disease from BRFSS Survey Data\\with Linear, Logistic and Tree Models}
 
 \author{
   Hassen Ben Chaabane, Meriem Laataoui, Youssef Ben Lassoued\\
@@ -27,27 +27,28 @@
 \begin{abstract}
 We predict self-reported coronary heart disease from the 2015 BRFSS telephone
 survey, a binary task in which only 8.8\% of the respondents are positive,
-with linear and logistic models implemented in NumPy. We clean the coded
+with linear, logistic and tree models implemented in NumPy. We clean the coded
 survey answers with rules from the BRFSS codebook, add one-hot encodings,
 missing-value indicators and pairwise interactions, and evaluate every
 choice, including the decision threshold, by nested cross-validation scored
 with F1. The final model, regularized logistic regression with interactions,
-reaches F1 $0.441\pm0.006$ in nested cross-validation and $0.454$ on the
-AIcrowd test set. The codebook rules give the largest gain, while
-regularization and class weighting do not help: the model does not overfit,
-and tuning the threshold already handles the imbalance.
+reaches F1 $0.441\pm0.006$ in nested cross-validation and $0.450$ on
+AIcrowd, and $0.454$ blended with gradient-boosted trees. The codebook rules
+give the largest gain, while regularization and class weighting do not
+help: the model does not overfit, and tuning the threshold already handles
+the imbalance.
 \end{abstract}
 
 \section{Introduction}
-Cardiovascular disease is the leading cause of death worldwide. We predict
+Cardiovascular disease is the leading cause of death worldwide. To predict
 self-reported coronary heart disease or myocardial infarction (MICHD) from the
-2015 BRFSS telephone survey, a binary task with strong class imbalance, scored
-with F1 and solved with NumPy only. We contribute (a) a label-free
-preprocessing built from the BRFSS codebook (Section~\ref{sec:data}); (b) a
+2015 BRFSS survey, we contribute (a) a label-free preprocessing built from
+the BRFSS codebook (Section~\ref{sec:data}); (b) a
 nested cross-validation protocol in which the threshold is also chosen without
 seeing the test fold (Section~\ref{sec:protocol}); (c) a comparison of linear
 and logistic models and of class weighting, and a final model with
-interactions (Sections~\ref{sec:methods}--\ref{sec:final}); and (d) ablations
+interactions, blended with boosted trees
+(Sections~\ref{sec:methods}--\ref{sec:final}); and (d) ablations
 showing which choices actually improve F1 (Section~\ref{sec:results}).
 
 % ============================================================================
@@ -62,8 +63,7 @@ respondents, mostly from optional state modules. Optional: EDA figure.}
 
 The features are coded survey answers, so we first convert them into
 meaningful values with rules from the BRFSS 2015 codebook~\cite{brfss15},
-checked for every feature (Table~\ref{tab:codebook}). The rules depend only
-on the feature values, never on the labels.
+checked for every feature (Table~\ref{tab:codebook}).
 
 \begin{table}[b]
 \centering\footnotesize
@@ -106,7 +106,7 @@ maximize F1; the selected model is retrained on them and evaluated on the
 test fold, which thus never influences a choice. We report the mean and standard deviation of F1 over the test
 folds. Two configurations are compared by their per-fold F1 difference
 $\Delta$, and one is better only if $\Delta>0$ in all five folds. The
-submitted model results from the same selection on the full training set.
+final model results from the same selection on the full training set.
 
 % ============================================================================
 % OWNER: Person 3 (linear methods)
@@ -127,7 +127,7 @@ is the one of the logistic models.
 % ============================================================================
 \subsection{Logistic models}
 Logistic regression models the probability of disease as
-$\sigma(x_i^\top w)$, with $y_i\in\{0,1\}$, and minimizes the mean negative
+$\sigma(x_i^\top w)$ and minimizes the mean negative
 log-likelihood
 $L(w)=\frac1N\sum_i\bigl[\log(1+e^{x_i^\top w})-y_i x_i^\top w\bigr]$; its
 regularized version minimizes $L(w)+\lambda\|w\|^2$. Both use full-batch
@@ -139,30 +139,35 @@ $\lambda\in\{10^{-6},\dots,10^{-1}\}$ and $t\in\{0.05,0.06,\dots,0.95\}$.
 \subsection{Final model}\label{sec:final}
 A linear model cannot capture joint effects, such as smoking being more
 dangerous for older respondents. The final model therefore fits regularized
-logistic regression, the best method (Table~\ref{tab:methods}), ranks the
-standardized features by $|w_j|$, and refits it with the $K(K-1)/2$
-standardized products of the top $K$, with $K\in\{20,30,\dots,80\}$ chosen
-by 3-fold cross-validation.
+logistic regression, ranks the standardized features by $|w_j|$, and
+refits it with the $K(K-1)/2$ standardized products of the top $K$, with
+$K\in\{20,30,\dots,80\}$ chosen by 3-fold cross-validation. The submitted
+predictions blend the final model with gradient-boosted trees, implemented
+in NumPy: 200 trees of depth 4, each a Newton step of size $0.08$ on the
+logistic loss, on the cleaned features cut into 32 quantile bins plus one
+for missing values. The blend predicts disease when
+$0.8\,p_\mathrm{trees}+0.2\,p_\mathrm{final}\ge0.222$, the weight and
+threshold that maximize inner-validation F1 without lowering the final
+model's accuracy.
 
 % ============================================================================
 % OWNER: Person 2 (results). Person 3: fill the four linear rows of tab:methods.
 % ============================================================================
 \section{Results}\label{sec:results}
 The final model is the best method (Table~\ref{tab:methods}), with F1
-$=0.441\pm0.006$ in nested cross-validation and $0.454$ on AIcrowd. Its
+$=0.441\pm0.006$ in nested cross-validation and $0.450$ on AIcrowd. Its
 gain does not come from the hyperparameters: F1 is flat around the selected
 $\gamma=0.3$, $\lambda=10^{-4}$ and $K=40$ (Fig.~\ref{fig:tuning}), and
 every outer fold selects $\gamma\in\{0.3,1\}$ and $\lambda\le10^{-3}$. Nor
 does it come from regularization: plain and regularized logistic regression
 are tied, $\Delta=0.0003\pm0.0014$, as training and validation losses of
 $0.219$ and $0.221$ show no overfitting.
-The linear models are weaker: least squares and ridge reach F1 $0.420$,
-and regularized logistic regression beats least squares in all five folds,
-$\Delta=0.011\pm0.002$, mostly through precision, $0.358$ against $0.346$.
+The linear models are weaker: regularized logistic regression beats least
+squares in all five folds, $\Delta=0.011\pm0.002$, mostly through
+precision, $0.358$ against $0.346$.
 The squared loss also penalizes correct predictions beyond 0 or 1, so
 well-classified respondents distort the fit, which the log-likelihood
-avoids. As for logistic regression, $\lambda\le10^{-3}$ changes F1 by less
-than $0.001$. GD, with $\gamma=0.09$ in every fold, comes within $0.002$ of
+avoids. GD, with $\gamma=0.09$ in every fold, comes within $0.002$ of
 least squares; SGD, limited to one epoch, loses $0.005$.
 
 % Floats are placed after the paragraphs that discuss them, so that they
@@ -171,8 +176,7 @@ least squares; SGD, limited to one epoch, loses $0.005$.
 \centering
 \includegraphics[width=\columnwidth]{figures/tuning.pdf}
 \caption{Inner-CV F1 on the full training set; $\lambda=0$: plain
-logistic regression; orange: selected. F1 rises with $\gamma$ until
-convergence and is flat for $\lambda\le10^{-3}$.}
+logistic regression; orange: selected.}
 \label{fig:tuning}
 \end{figure}
 
@@ -219,37 +223,39 @@ $\Delta$: per-fold gain over the row above.}
 The gain therefore comes from the features, added one at a time in
 Table~\ref{tab:ablation}. The codebook rules contribute most, raising
 precision from $0.337$ to $0.361$. One-hot encoding and missing indicators
-add $0.004$ and $0.005$ in all folds, the interactions $0.003$ in four folds
-only, a likely but uncertain gain. Squared or binned features, more
-interactions and model averaging changed F1 by less than $0.001$.
+help in all folds, the interactions in four folds only, a likely but
+uncertain gain. Squared or binned features, more interactions and model
+averaging changed F1 by less than $0.001$.
 
 Finally, the class imbalance needs no correction beyond the threshold.
 Weighting the loss of the positive samples by $\omega=10.3$, the ratio of
 negatives to positives, or by its square root $3.2$ gives F1 $0.430$ and
 $0.431$ against $0.432$, but thresholds $0.75$ and $0.48$ instead of
-$0.21$. Weighting multiplies the odds by about $\omega$ without changing
-the order of the predictions, so only the threshold moves: for
-$\omega=10.3$, $0.21$ becomes $0.73$.
+$0.21$. Weighting multiplies the odds by about $\omega$, so only the
+threshold moves: for $\omega=10.3$, $0.21$ becomes $0.73$.
+
+On the same outer folds, with weight and threshold chosen on a held-out
+quarter of each training part, the tree blend beats the final model in four
+folds, F1 $0.444\pm0.007$ against $0.441\pm0.007$, at equal accuracy,
+$0.885$ against $0.884$, and reaches $0.454$ on AIcrowd. Deeper or slower
+trees did not help.
 
 % ============================================================================
 % OWNER: Person 3 (conclusion, reproducibility)
 % ============================================================================
 \section{Conclusion}
-The final model, regularized logistic regression with interactions, reaches
-a nested-CV F1 of $0.441\pm0.006$ and $0.454$ on AIcrowd. The codebook rules
-give the largest gain, the model does not overfit, so regularization does
-not help, and threshold tuning already handles the imbalance. The labels are
-self-reported and the survey is observational, so the model captures
-associations, not causes, and with a precision of $0.37$ most predicted
-positives are false alarms. The small, uncertain gain of the interactions
-suggests that linear models are close to their limit on these features.
+Codebook preprocessing matters most, and blending the final model with
+gradient-boosted trees raises the AIcrowd F1 from $0.450$ to $0.454$. The
+labels are self-reported and the survey is observational, so the models
+capture associations, not causes, and with a precision below $0.4$ most
+predicted positives are false alarms. The small, uncertain gains of the
+interactions and of the trees suggest that these features are close to
+their limit.
 
 \section*{Reproducibility}
-Code: \pending{public GitHub URL and commit}. \texttt{run.py} reproduces the
-submitted predictions. \texttt{tune\_models.py}, \texttt{evaluate\_best.py}
-and \texttt{imbalance.py} produce Tables~\ref{tab:methods}
-and~\ref{tab:ablation}, and \texttt{plots.py} draws Fig.~\ref{fig:tuning};
-the README lists all commands.
+Code: \pending{public GitHub URL and commit}. \texttt{run.py} with
+\texttt{config/boosted\_v2.json} reproduces the submitted predictions; the
+README lists the commands behind every table and figure.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
