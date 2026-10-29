@@ -1,8 +1,10 @@
 """5-fold CV of the final model, with the threshold tuned on inner folds.
 
 Uses the same stratified folds (seed 0) as tune_models.py, so the per-fold
-F1 can be compared with the earlier models. --n-top 0 evaluates the same
-preprocessing without interactions. Writes results/best_model_cv.json.
+F1 can be compared with the earlier models. The options remove one part of
+the final model at a time, for the ablation of the report: --n-top 0 drops
+the interactions, --no-indicators the missing-value indicators, and
+--no-one-hot the one-hot encoding. Writes results/best_model_cv.json.
 Hyperparameters and the configured categorical column list remain fixed;
 only the decision threshold is selected in the inner loop.
 """
@@ -89,6 +91,8 @@ def main(argv=None):
     parser.add_argument("--inner-folds", type=int, default=3)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--n-top", type=int, help="override the number of top features")
+    parser.add_argument("--no-indicators", action="store_true")
+    parser.add_argument("--no-one-hot", action="store_true")
     parser.add_argument("--output", type=Path, default=ROOT / "results" / "best_model_cv.json")
     args = parser.parse_args(argv)
     try:
@@ -97,6 +101,10 @@ def main(argv=None):
         config = load_best_config(args.config)
         if args.n_top is not None:
             config["params"]["n_top"] = args.n_top
+        if args.no_indicators:
+            config["preprocessing"]["add_missing_indicators"] = False
+        if args.no_one_hot:
+            config["preprocessing"]["categorical_columns"] = []
         config = validate_best_config(config)
         x_train, _, y_train, _, _ = load_data(args.data_dir, use_cache=not args.no_cache)
         out = evaluate_config(config, y_train, x_train, args.folds, args.inner_folds, args.seed)

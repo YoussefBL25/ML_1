@@ -42,7 +42,7 @@ def tuning_figure(results, output):
     lambdas = sorted({l for _, l in cells})
     norm = Normalize(*F1_RANGE)
 
-    fig, ax = plt.subplots(figsize=(3.4, 2.05))
+    fig, ax = plt.subplots(figsize=(3.4, 1.75))
     for i, gamma in enumerate(gammas):
         for j, lambda_ in enumerate(lambdas):
             x, f1 = j + (GAP if j else 0.0), cells[(gamma, lambda_)]
@@ -51,7 +51,7 @@ def tuning_figure(results, output):
                                    edgecolor=SURFACE, linewidth=1.2))
             dark = inside and norm(f1) > 0.55
             ax.text(x + 0.5, i + 0.5, f"{f1:.4f}"[1:] if inside else f"{f1:.2f}",
-                    ha="center", va="center", fontsize=5.6,
+                    ha="center", va="center", fontsize=7,
                     color=SURFACE if dark else INK)
             if (gamma, lambda_) in selected:
                 ax.add_patch(Rectangle((x + 0.07, i + 0.07), 0.86, 0.86, fill=False,
@@ -64,19 +64,19 @@ def tuning_figure(results, output):
     ax.set_yticklabels([f"{g:g}" for g in gammas])
     ax.set_xlim(0, len(lambdas) + GAP)
     ax.set_ylim(len(gammas), 0)
-    ax.set_xlabel("$\\lambda$", fontsize=7, color=MUTED, labelpad=1)
-    ax.set_ylabel("$\\gamma$", fontsize=7, color=MUTED, rotation=0, labelpad=6)
-    ax.tick_params(labelsize=6, colors=MUTED, length=0, pad=2)
+    ax.set_xlabel("$\\lambda$", fontsize=9, color=MUTED, labelpad=1)
+    ax.set_ylabel("$\\gamma$", fontsize=9, color=MUTED, rotation=0, labelpad=6)
+    ax.tick_params(labelsize=7.5, colors=MUTED, length=0, pad=2)
     for spine in ax.spines.values():
         spine.set_visible(False)
-    ax.text(0.5, -0.25, "Logistic", ha="center", va="bottom", fontsize=6.5, color=INK)
+    ax.text(0.5, -0.25, "Logistic", ha="center", va="bottom", fontsize=8, color=INK)
     ax.text(1 + GAP + (len(lambdas) - 1) / 2, -0.25, "Regularized logistic",
-            ha="center", va="bottom", fontsize=6.5, color=INK)
+            ha="center", va="bottom", fontsize=8, color=INK)
 
     bar = fig.colorbar(ScalarMappable(norm=norm, cmap=BLUES), ax=ax, fraction=0.04, pad=0.02)
     bar.set_ticks([0.41, 0.42, 0.43])
-    bar.set_label("inner-CV F1", fontsize=6.5, color=MUTED)
-    bar.ax.tick_params(labelsize=5.5, colors=MUTED, length=2)
+    bar.set_label("inner-CV F1", fontsize=8, color=MUTED)
+    bar.ax.tick_params(labelsize=7, colors=MUTED, length=2)
     bar.outline.set_visible(False)
 
     fig.tight_layout(pad=0.3)
