@@ -25,18 +25,13 @@
 % OWNER: Person 3 (abstract, introduction)
 % ============================================================================
 \begin{abstract}
-We predict self-reported coronary heart disease from the 2015 BRFSS telephone
-survey, a binary task in which only 8.8\% of the respondents are positive,
-with linear, logistic and tree models implemented in NumPy. We clean the coded
-survey answers with rules from the BRFSS codebook, add one-hot encodings,
-missing-value indicators and pairwise interactions, and evaluate every
-choice, including the decision threshold, by nested cross-validation scored
-with F1. The final model, regularized logistic regression with interactions,
-reaches F1 $0.441\pm0.006$ in nested cross-validation and $0.450$ on
-AIcrowd, and $0.454$ blended with gradient-boosted trees. The codebook rules
-give the largest gain, while regularization and class weighting do not
-help: the model does not overfit, and tuning the threshold already handles
-the imbalance.
+We predict self-reported coronary heart disease from the 2015 BRFSS survey,
+8.8\% positive, with linear, logistic and tree models in NumPy, choosing
+everything, threshold included, by nested cross-validation of F1.
+Regularized logistic regression on codebook-cleaned features with one-hot
+encodings, missing indicators and interactions reaches F1
+$0.441\pm0.006$, $0.450$ on AIcrowd and $0.454$ blended with boosted trees.
+The codebook rules help most; regularization and class weighting do not.
 \end{abstract}
 
 \section{Introduction}
@@ -55,12 +50,10 @@ showing which choices actually improve F1 (Section~\ref{sec:results}).
 % OWNER: Person 1 (data description, imputation and scaling). Person 2: codebook rules, final-model features.
 % ============================================================================
 \section{Data and preprocessing}\label{sec:data}
-The training set has 328,135 respondents and the test set 109,379, each
-described by 321 features; 8.8\% of the training respondents are positive.
-Most features are coded answers, 199 of them with 3 to 10 values; the others
-are counts, durations and measurements on very different scales. 44.8\% of
-all values are missing, and 147 features are missing for more than half of
-the respondents, mostly questions from optional state modules.
+The 328,135 training and 109,379 test respondents are described by 321
+features, mostly coded answers; 8.8\% of the training respondents are
+positive. 44.8\% of the values are missing, and 147 features, mostly from
+optional state modules, for more than half of the respondents.
 
 The features are coded survey answers, so we first convert them into
 meaningful values with rules from the BRFSS 2015 codebook~\cite{brfss15},
@@ -82,10 +75,10 @@ Drop 3 nominal features & activity types, kept in computed minutes; one 99.9\% m
 \caption{Codebook rules, applied before any learning.}
 \label{tab:codebook}
 \end{table}
-Missing values are then replaced by the training median, features without
-variance are dropped, the others are standardized and a bias column is
-added, with all statistics estimated on the training rows only. Without the
-codebook rules, this is the generic baseline of Table~\ref{tab:ablation}.
+Missing values are then set to the training median, constant features are
+dropped, the others standardized and a bias added, with statistics from the
+training rows only; alone, this is the generic baseline
+(Table~\ref{tab:ablation}).
 
 The final model also adds binary features: a one-hot encoding of the
 nominal features and of every feature with 3 to 10 values, and a
@@ -113,15 +106,12 @@ final model results from the same selection on the full training set.
 % OWNER: Person 3 (linear methods)
 % ============================================================================
 \subsection{Linear models}
-The linear models regress $y_i\in\{0,1\}$ on the features with the mean
-squared error $L(w)=\frac1{2N}\|y-Xw\|^2$, and threshold the score
-$x_i^\top w$ like a probability. Least squares solves the normal equations;
-ridge regression minimizes $L(w)+\lambda\|w\|^2$,
-$\lambda\in\{10^{-6},\dots,10^{-1}\}$. From $w=0$, gradient descent (GD)
-takes 200 full-batch steps, $\gamma\in\{1,3,10,30,60,90\}\cdot10^{-3}$, and
-SGD 200{,}000 single-sample steps, about one epoch, with seed 0 and
-$\gamma\in\{1,3\}\cdot10^{-6},\dots,\{1,3\}\cdot10^{-4}$. The threshold grid
-is the one of the logistic models.
+The linear models minimize $\frac1{2N}\|y-Xw\|^2$, plus $\lambda\|w\|^2$
+for ridge, $\lambda\in\{10^{-6},\dots,10^{-1}\}$, and threshold $x_i^\top w$.
+Least squares and ridge are solved exactly; from $w=0$, GD takes 200 steps,
+$\gamma\in\{1,3,10,30,60,90\}\cdot10^{-3}$, and SGD 200{,}000
+single-sample steps, about one epoch, $\gamma\in\{1,3\}\cdot10^{-k}$,
+$k=4,5,6$, seed 0.
 
 % ============================================================================
 % OWNER: Person 2 (logistic models, imbalance, final model)
@@ -165,11 +155,8 @@ are tied, $\Delta=0.0003\pm0.0014$, as training and validation losses of
 $0.219$ and $0.221$ show no overfitting.
 The linear models are weaker: regularized logistic regression beats least
 squares in all five folds, $\Delta=0.011\pm0.002$, mostly through
-precision, $0.358$ against $0.346$.
-The squared loss also penalizes correct predictions beyond 0 or 1, so
-well-classified respondents distort the fit, which the log-likelihood
-avoids. GD, with $\gamma=0.09$ in every fold, comes within $0.002$ of
-least squares; SGD, limited to one epoch, loses $0.005$.
+precision, $0.358$ against $0.346$, as the squared loss also penalizes
+correct predictions beyond 0 or 1.
 
 % Floats are placed after the paragraphs that discuss them, so that they
 % appear next to that text.
